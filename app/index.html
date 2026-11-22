@@ -425,7 +425,19 @@ function athHTML(){
    <div class="count"><span>${L.length} sporcu</span><span><span id="syncDot" class="dot ${S.sync||''}"></span> tüm cihazlarda</span></div>
    ${L.length? L.map(a=>{ const T=testsOf(a.id); return `<div class="sv" data-ath="${a.id}" style="cursor:pointer"><div class="t"><b>${esc(a.ad)}</b><span>${esc([a.takim,a.mevki,a.dy?('d. '+a.dy):''].filter(Boolean).join(' · '))}${T.length?` · ${T.length} test oturumu · son: ${esc(trDate(T[0].date))}`:''}</span></div><span style="font-size:20px;color:var(--mut)">›</span></div>` }).join('')
      : `<div class="empty">Henüz sporcu yok.<br><b>+ Yeni sporcu</b> ile ekle.</div>`}
+   <div class="bar" style="margin-top:16px"><button class="btn bclear" id="imp">📥 Excel'den aktar (dosya seç)</button><input type="file" id="impFile" accept=".json,application/json" hidden></div>
    ${acctHTML()}`;
+}
+async function importFile(f){
+  try{
+    const j=JSON.parse(await f.text()); let na=0, np=0;
+    (j.sporcular||[]).forEach(a=>{ if(!a.ad) return; if(athByName(a.ad)) return; dbPut('sporcu', uid(), a); na++ });
+    const have=new Set(progs().map(p=>norm(p.name)+'|'+p.date));
+    (j.programlar||[]).forEach(p=>{ if(have.has(norm(p.name)+'|'+p.date)) return; const a=athByName(p.ath); const id=uid();
+      dbPut('program', id, {...p, ath:a?a.ad:p.ath, athId:a?a.id:'', saved:now()}); np++ });
+    (j.testler||[]).forEach(t=>{ const a=athByName(t.ath); if(!a) return; dbPut('test', uid(), {...t, athId:a.id}) });
+    toast(`${na} sporcu, ${np} program aktarıldı ✓`); render();
+  }catch(e){ toast('Dosya okunamadı'); console.error(e) }
 }
 function acctHTML(){ return S.user && S.user.email ? `<div class="acct">Hesap: <b>${esc(S.user.email)}</b> · <button class="btn bclear" id="logout">Çıkış yap</button></div>` : '' }
 function athEditHTML(id){
@@ -577,6 +589,7 @@ document.addEventListener('change', e=>{
   if (t.dataset.h){ const d=draft(); d[t.dataset.h]=t.value; saveDraft(d) }
   if (t.dataset.tf){ const d=tdraft(); d[t.dataset.tf]=t.value; setTdraft(d); if(t.dataset.tf==='side') render() }
   if (t.id==='tc'){ S.tc=t.value; render() }
+  if (t.id==='impFile' && t.files[0]){ importFile(t.files[0]); t.value='' }
   if (t.id==='tpack' && t.value){ const d=tdraft(); d.pack=t.value; (TD().packs[t.value]||[]).forEach(c=>{ if(!d.items.some(i=>i.c===c)) d.items.push({c}) }); setTdraft(d); render() }
 });
 document.addEventListener('click', async e=>{
@@ -602,6 +615,7 @@ document.addEventListener('click', async e=>{
   // sporcular
   if (t.dataset.ath){ S.av={p:'det', id:t.dataset.ath}; window.scrollTo(0,0); return render() }
   if (t.dataset.back){ const v=S.av||{}; S.av = v.p==='test' ? {p:'det', id:(tdraft()||{}).athId} : v.p==='edit' && v.id ? {p:'det', id:v.id} : {p:'list'}; return render() }
+  if (t.id==='imp'){ return $('#impFile').click() }
   if (t.id==='athNew'){ S.av={p:'edit'}; return render() }
   if (t.id==='athEdit'){ S.av={p:'edit', id:t.dataset.id}; return render() }
   if (t.id==='athSave'){ const v={}; document.querySelectorAll('[data-af]').forEach(x=>v[x.dataset.af]=x.value.trim()); if(!v.ad) return toast('Ad soyad yaz');
