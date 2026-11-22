@@ -115,7 +115,18 @@ footer.sig{text-align:center;font-size:11px;color:var(--mut);margin-top:20px}
  #print .ft{margin-top:8px;font-size:9.5px;color:#555;display:flex;justify-content:space-between}
  #print tr{page-break-inside:avoid}
 }
+.dot{display:inline-block;width:9px;height:9px;border-radius:5px;background:#bbb;vertical-align:middle}
+.dot.ok{background:#2E7D32}.dot.busy{background:var(--amber)}.dot.off{background:#C62828}
+.login{max-width:420px;margin:30px auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+.login h2{margin:0 0 4px}.lgmsg{min-height:20px;font-size:13px;margin-top:8px}
+input[type=password]{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+body.nolog nav.bottom,body.nolog .mode{display:none}
+.acct{margin-top:18px;font-size:13px;color:var(--mut);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.res{padding:7px 2px;text-align:center;font-weight:800;font-size:13px;background:#f7f1e6;border-radius:8px}
+.pi .row.tr{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:420px){.pi .row.tr{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.pi .row.tr input{font-size:14px}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 <header>
@@ -129,6 +140,7 @@ footer.sig{text-align:center;font-size:11px;color:var(--mut);margin-top:20px}
  <button data-v="lib" class="on"><b>☰</b>Kütüphane</button>
  <button data-v="prog"><b>✎</b>Program<span class="badge" id="badge" hidden>0</span></button>
  <button data-v="saved"><b>★</b>Kayıtlı</button>
+ <button data-v="ath"><b>👤</b>Sporcular</button>
 </nav>
 <div class="sheet" id="sheet"><div class="in" id="sheetIn"></div></div>
 <div class="toast" id="toast"></div>
@@ -258,7 +270,7 @@ function progHTML(){
   const m=S.mode, d=draft(), L=ordered(d);
   const head = `<div class="pform">
     <div class="full"><label class="l">Program adı</label><input type="text" data-h="name" value="${esc(d.name)}" placeholder="ör. KUVVET – POWER (MD-4)"></div>
-    <div><label class="l">Sporcu / Takım</label><input type="text" data-h="ath" value="${esc(d.ath)}"></div>
+    <div><label class="l">Sporcu / Takım</label><input type="text" data-h="ath" list="athl" value="${esc(d.ath)}" placeholder="Sporcu seç ya da yaz"></div>
     <div><label class="l">Tarih</label><input type="date" data-h="date" value="${esc(d.date)}"></div>
     <div><label class="l">MD günü</label><select data-h="md"><option value="">—</option>${MDS.map(v=>`<option ${v===d.md?'selected':''}>${v}</option>`).join('')}</select></div>
     <div><label class="l">Not</label><input type="text" data-h="note" value="${esc(d.note)}"></div></div>`;
@@ -273,24 +285,6 @@ function progHTML(){
      <input class="nt" type="text" data-k="note" value="${esc(o.note)}" placeholder="Not (ör. A1-A2 süperset)"></div>`;
   });
   return head + `<div class="bar"><button class="btn bsave" id="save">💾 Kaydet</button><button class="btn bpdf" id="pdf">📄 PDF / Yazdır</button><button class="btn bshare" id="share">➦ Paylaş</button><button class="btn bclear" id="clear">Temizle</button></div>` + html;
-}
-
-/* ---------- kayıtlılar ---------- */
-const trDate = d => { const m=String(d||'').match(/^(\d{4})-(\d\d)-(\d\d)$/); return m ? `${m[3]}.${m[2]}.${m[1]}` : (d||'') };
-const savedAll = () => store.get('pf_programs_v1', []);
-function savedHTML(){
-  const L = savedAll();
-  if (!L.length) return `<div class="empty">Kayıtlı program yok.<br>Program ekranında <b>Kaydet</b>'e bas.</div>`;
-  return `<div class="count"><span>${L.length} kayıtlı program (bu cihazda)</span></div>` + L.map((p,i)=>`<div class="sv"><div class="t"><b><span class="tag ${p.mode==='saha'?'s':''}">${p.mode==='saha'?'SAHA':'GYM'}</span>${esc(p.name||'(adsız)')}</b><span>${esc(p.ath||'')} · ${esc(trDate(p.date))} ${p.md?'· '+esc(p.md):''} · ${p.items.length} hareket</span></div>
-    <button class="btn bvid" data-open="${i}">Aç</button><button class="btn bpdf" data-pdf="${i}">PDF</button><button class="btn bclear" data-del="${i}">Sil</button></div>`).join('');
-}
-function saveProgram(){
-  const d=draft(); if(!d.items.length) return toast('Program boş');
-  if(!d.name){ d.name=(d.ath?d.ath+' – ':'')+'Program '+d.date; saveDraft(d) }
-  const L=savedAll(); const rec={...d, mode:S.mode, saved:Date.now()};
-  const i=L.findIndex(p=>p.id && p.id===d.id);
-  if (i>=0) L[i]=rec; else { rec.id=d.id||('p'+Date.now()); d.id=rec.id; saveDraft(d); L.unshift(rec) }
-  store.set('pf_programs_v1', L) ? toast('Kaydedildi ✓') : toast('Kaydedilemedi (tarayıcı depolaması kapalı)');
 }
 
 /* ---------- PDF / paylaş ---------- */
@@ -321,31 +315,276 @@ async function shareProgram(){
   window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');
 }
 
+/* ---------- bulut (Supabase) + yerel önbellek ---------- */
+const SB_URL = 'https://udbiomxiguvkzkmbelqt.supabase.co';
+const SB_KEY = 'sb_publishable_XZoLQglI6nEjQhsDZj3tyA_UhvH5tb1';
+const sb = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}}) : null;
+const DB = { s: store.get('pf_db_v1', {recs:{}, last:null, uid:null}) };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id' + Date.now() + Math.random().toString(16).slice(2));
+const now = () => new Date().toISOString();
+function dbSave(){ store.set('pf_db_v1', DB.s) }
+function dbList(tur){ return Object.entries(DB.s.recs).filter(([,r])=>r.tur===tur && !r.del).map(([id,r])=>({...r.veri, id})) }
+function dbGet(id){ const r=DB.s.recs[id]; return r && !r.del ? {...r.veri, id} : null }
+function dbPut(tur, id, veri){ const v={...veri}; delete v.id; DB.s.recs[id]={tur, veri:v, t:now(), dirty:1}; dbSave(); sync() }
+function dbDel(id){ const r=DB.s.recs[id]; if(!r) return; r.del=1; r.dirty=1; r.t=now(); dbSave(); sync() }
+function setSync(st){ S.sync=st; const e=$('#syncDot'); if(e){ e.className='dot '+st; e.title = st==='ok'?'Bulutla eşit':st==='busy'?'Eşitleniyor…':'Çevrimdışı – sonra eşitlenecek' } }
+let syncing=false, syncAgain=false;
+async function sync(){
+  if (!sb || !S.user) return;
+  if (syncing){ syncAgain=true; return }
+  syncing=true; setSync('busy');
+  try{
+    const dirty = Object.entries(DB.s.recs).filter(([,r])=>r.dirty);
+    if (dirty.length){
+      const {error} = await sb.from('kayitlar').upsert(dirty.map(([id,r])=>({id, tur:r.tur, veri:r.veri, silindi:!!r.del})));
+      if (error) throw error;
+      dirty.forEach(([id])=>{ if(DB.s.recs[id]) delete DB.s.recs[id].dirty });
+    }
+    let got=0;
+    for (let page=0; page<50; page++){
+      let q = sb.from('kayitlar').select('id,tur,veri,silindi,guncelleme').order('guncelleme',{ascending:true}).limit(500);
+      if (DB.s.last) q = q.gt('guncelleme', DB.s.last);
+      const {data, error} = await q; if (error) throw error;
+      data.forEach(row=>{ const loc=DB.s.recs[row.id]; if(!(loc && loc.dirty)) DB.s.recs[row.id]={tur:row.tur, veri:row.veri, t:row.guncelleme, del:row.silindi}; DB.s.last=row.guncelleme });
+      got += data.length; if (data.length<500) break;
+    }
+    dbSave(); setSync('ok');
+    if (got) softRender();
+  }catch(e){ console.warn('sync', e); setSync('off') }
+  finally{ syncing=false; if(syncAgain){ syncAgain=false; setTimeout(sync, 300) } }
+}
+function softRender(){ const a=document.activeElement; if(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; if(['saved','ath'].includes(S.view)) render() }
+window.addEventListener('online', ()=>sync());
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') sync() });
+
+/* ---------- giriş ---------- */
+function loginHTML(){
+  return `<div class="login"><h2>Giriş yap</h2><p class="en">Programların, sporcuların ve testlerin tüm cihazlarında (telefon, bilgisayar, tablet) aynı görünür.</p>
+   <label class="l">E-posta</label><input type="text" id="lgMail" inputmode="email" autocomplete="username" autocapitalize="off">
+   <label class="l" style="margin-top:8px">Şifre</label><input type="password" id="lgPass" autocomplete="current-password">
+   <div id="lgMsg" class="lgmsg"></div>
+   <div class="bar"><button class="btn bsave" id="lgIn">Giriş</button><button class="btn bvid" id="lgUp">Yeni hesap aç</button></div>
+   <button class="btn bclear" id="lgFg" style="width:100%">Şifremi unuttum</button></div>`;
+}
+function lgMsg(t, ok){ const e=$('#lgMsg'); if(e){ e.textContent=t; e.style.color = ok ? 'var(--ok)' : '#C00000' } }
+async function doLogin(kind){
+  const mail=($('#lgMail').value||'').trim(), pass=$('#lgPass').value||'';
+  if (!mail) return lgMsg('E-posta yaz.');
+  try{
+    if (kind==='fg'){ const {error}=await sb.auth.resetPasswordForEmail(mail,{redirectTo:location.origin+location.pathname}); if(error) throw error; return lgMsg('Şifre yenileme linki e-postana gönderildi.', true) }
+    if (pass.length<6) return lgMsg('Şifre en az 6 karakter olmalı.');
+    if (kind==='up'){ const {data,error}=await sb.auth.signUp({email:mail,password:pass,options:{emailRedirectTo:location.origin+location.pathname}}); if(error) throw error;
+      if(!data.session) return lgMsg('Hesap açıldı. E-postana gelen onay linkine tıkla, sonra burada giriş yap.', true); }
+    else { const {error}=await sb.auth.signInWithPassword({email:mail,password:pass}); if(error) throw error }
+  }catch(e){ lgMsg(/Invalid login/i.test(e.message)?'E-posta ya da şifre hatalı.':/not confirmed/i.test(e.message)?'Önce e-postandaki onay linkine tıkla.':e.message) }
+}
+async function onUser(user){
+  S.user = user;
+  if (user){
+    if (DB.s.uid && DB.s.uid!==user.id) DB.s = {recs:{}, last:null, uid:user.id};
+    DB.s.uid = user.id;
+    const old = store.get('pf_programs_v1', null);       // eski (sadece cihazdaki) programları buluta taşı
+    if (old && old.length){ old.forEach(p=>{ const id=uid(); DB.s.recs[id]={tur:'program', veri:{...p, id:undefined}, t:now(), dirty:1} }); store.set('pf_programs_v1', []) }
+    dbSave(); sync();
+  }
+  render();
+}
+
+/* ---------- kayıtlı programlar ---------- */
+const trDate = d => { const m=String(d||'').match(/^(\d{4})-(\d\d)-(\d\d)$/); return m ? `${m[3]}.${m[2]}.${m[1]}` : (d||'') };
+const progs = () => dbList('program').sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')) || String(b.saved||'').localeCompare(String(a.saved||'')));
+function savedHTML(){
+  const L = progs();
+  if (!L.length) return `<div class="empty">Kayıtlı program yok.<br>Program ekranında <b>Kaydet</b>'e bas.</div>`;
+  return `<div class="count"><span>${L.length} kayıtlı program</span><span><span id="syncDot" class="dot ${S.sync||''}"></span> tüm cihazlarda</span></div>` + L.map(p=>`<div class="sv"><div class="t"><b><span class="tag ${p.mode==='saha'?'s':''}">${p.mode==='saha'?'SAHA':'GYM'}</span>${esc(p.name||'(adsız)')}</b><span>${esc(p.ath||'')} · ${esc(trDate(p.date))} ${p.md?'· '+esc(p.md):''} · ${(p.items||[]).length} hareket</span></div>
+    <button class="btn bvid" data-open="${p.id}">Aç</button><button class="btn bpdf" data-pdf="${p.id}">PDF</button><button class="btn bclear" data-del="${p.id}">Sil</button></div>`).join('');
+}
+function saveProgram(){
+  const d=draft(); if(!d.items.length) return toast('Program boş');
+  if(!d.name){ d.name=(d.ath?d.ath+' – ':'')+'Program '+trDate(d.date) }
+  const a = athByName(d.ath); d.athId = a ? a.id : (d.athId||'');
+  if(!d.id) d.id = uid();
+  saveDraft(d);
+  dbPut('program', d.id, {...d, mode:S.mode, saved:now()});
+  toast('Kaydedildi ✓');
+}
+
+/* ---------- sporcular ---------- */
+const aths = () => dbList('sporcu').sort((a,b)=>String(a.ad||'').localeCompare(String(b.ad||''),'tr'));
+const athByName = n => { const k=norm(n).trim(); return k ? aths().find(a=>norm(a.ad).trim()===k) : null };
+const testsOf = id => dbList('test').filter(t=>t.athId===id).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+const POS = ['Kaleci','Stoper','Bek','Ön libero','Orta saha','Kanat','Forvet'];
+function athHTML(){
+  const v=S.av||{p:'list'};
+  if (v.p==='edit') return athEditHTML(v.id);
+  if (v.p==='det') return athDetHTML(v.id);
+  if (v.p==='test') return testEntryHTML();
+  const q=norm(S.aq||''); const L=aths().filter(a=>!q || norm([a.ad,a.takim,a.mevki].join(' ')).includes(q));
+  return `<div class="filters"><input class="full" type="search" id="aq" placeholder="Sporcu ara…" value="${esc(S.aq||'')}"></div>
+   <div class="bar"><button class="btn bsave" id="athNew">+ Yeni sporcu</button></div>
+   <div class="count"><span>${L.length} sporcu</span><span><span id="syncDot" class="dot ${S.sync||''}"></span> tüm cihazlarda</span></div>
+   ${L.length? L.map(a=>{ const T=testsOf(a.id); return `<div class="sv" data-ath="${a.id}" style="cursor:pointer"><div class="t"><b>${esc(a.ad)}</b><span>${esc([a.takim,a.mevki,a.dy?('d. '+a.dy):''].filter(Boolean).join(' · '))}${T.length?` · ${T.length} test oturumu · son: ${esc(trDate(T[0].date))}`:''}</span></div><span style="font-size:20px;color:var(--mut)">›</span></div>` }).join('')
+     : `<div class="empty">Henüz sporcu yok.<br><b>+ Yeni sporcu</b> ile ekle.</div>`}
+   ${acctHTML()}`;
+}
+function acctHTML(){ return S.user && S.user.email ? `<div class="acct">Hesap: <b>${esc(S.user.email)}</b> · <button class="btn bclear" id="logout">Çıkış yap</button></div>` : '' }
+function athEditHTML(id){
+  const a = id ? (dbGet(id)||{}) : {};
+  const f=(k,l,t='text',ex='')=>`<div ${ex}><label class="l">${l}</label><input type="${t}" data-af="${k}" value="${esc(a[k]||'')}"></div>`;
+  return `<button class="btn bclear" data-back="1">‹ Geri</button><h3>${id?'Sporcuyu düzenle':'Yeni sporcu'}</h3>
+   <div class="pform">${f('ad','Ad soyad *','text','class="full"')}${f('takim','Takım / grup')}
+    <div><label class="l">Mevki</label><select data-af="mevki"><option value="">—</option>${POS.map(p=>`<option ${a.mevki===p?'selected':''}>${p}</option>`).join('')}</select></div>
+    ${f('dy','Doğum yılı','text')}${f('boy','Boy (cm)','text')}${f('kilo','Kilo (kg)','text')}
+    <div><label class="l">Dominant ayak</label><select data-af="ayak"><option value="">—</option>${['Sağ','Sol','İki ayak'].map(p=>`<option ${a.ayak===p?'selected':''}>${p}</option>`).join('')}</select></div>
+    <div class="full"><label class="l">Sakatlık geçmişi / not</label><textarea data-af="not" rows="3">${esc(a.not||'')}</textarea></div></div>
+   <div class="bar"><button class="btn bsave" id="athSave" data-id="${id||''}">💾 Kaydet</button>${id?`<button class="btn bclear" id="athDel" data-id="${id}">Sporcuyu sil</button>`:''}</div>`;
+}
+function athDetHTML(id){
+  const a=dbGet(id); if(!a){ S.av={p:'list'}; return athHTML() }
+  const T=testsOf(id), P=progs().filter(p=>p.athId===id || (p.ath && norm(p.ath)===norm(a.ad)));
+  const info=[['Takım',a.takim],['Mevki',a.mevki],['Doğum yılı',a.dy],['Boy',a.boy&&a.boy+' cm'],['Kilo',a.kilo&&a.kilo+' kg'],['Dominant ayak',a.ayak],['Not',a.not]].filter(r=>r[1]);
+  return `<button class="btn bclear" data-back="1">‹ Sporcular</button>
+   <h2 style="margin:10px 0 4px">${esc(a.ad)}</h2><div class="kv">${info.map(r=>`<div>${r[0]}</div><div>${esc(r[1])}</div>`).join('')}</div>
+   <div class="bar"><button class="btn bsave" id="tNew" data-id="${id}">+ Yeni test</button><button class="btn bvid" id="pNew" data-id="${id}">✎ Program yaz</button><button class="btn bclear" id="athEdit" data-id="${id}">Düzenle</button></div>
+   <div class="sec">Gelişim (testler)</div>${progressHTML(T)}
+   <div class="sec">Test oturumları (${T.length})</div>
+   ${T.length? T.map(t=>`<div class="sv"><div class="t"><b>${esc(trDate(t.date))}${t.pack?' · '+esc(t.pack):''}</b><span>${(t.items||[]).length} test${t.side?' · sakat taraf: '+esc(t.side):''}${t.note?' · '+esc(t.note):''}</span></div>
+     <button class="btn bvid" data-topen="${t.id}">Aç</button><button class="btn bpdf" data-tpdf="${t.id}">PDF</button><button class="btn bclear" data-tdel="${t.id}">Sil</button></div>`).join('') : '<div class="empty" style="padding:14px">Henüz test yok.</div>'}
+   <div class="sec">Programları (${P.length})</div>
+   ${P.length? P.map(p=>`<div class="sv"><div class="t"><b><span class="tag ${p.mode==='saha'?'s':''}">${p.mode==='saha'?'SAHA':'GYM'}</span>${esc(p.name||'(adsız)')}</b><span>${esc(trDate(p.date))} · ${(p.items||[]).length} hareket</span></div><button class="btn bvid" data-open="${p.id}">Aç</button><button class="btn bpdf" data-pdf="${p.id}">PDF</button></div>`).join('') : '<div class="empty" style="padding:14px">Bu sporcuya bağlı program yok.</div>'}`;
+}
+
+/* ---------- testler ---------- */
+const TD = () => S.data.tests;
+const tByC = c => TD().by[c];
+const num = v => { if(v===null||v===undefined||v==='') return null; const n=parseFloat(String(v).replace(',','.')); return isNaN(n)?null:n };
+const r1 = v => v==null ? '' : (Math.round(v*100)/100).toString().replace('.',',');
+const RL = ['Zayıf','Orta','İyi','Çok iyi','Elit'], RC = ['#C62828','#EF6C00','#9E9D24','#2E7D32','#00695C'];
+function evalTest(t, it, side){
+  const R=num(it.r), L=num(it.l), V=num(it.v), hy=t.hy||1;
+  let res=null, lsi=null;
+  if (t.md && R!=null && L!=null){
+    let inv, un;
+    if (side==='Sağ'){ inv=R; un=L } else if (side==='Sol'){ inv=L; un=R } else { inv = hy>0?Math.min(R,L):Math.max(R,L); un = hy>0?Math.max(R,L):Math.min(R,L) }
+    lsi = (un && inv) ? (hy>0 ? inv/un*100 : un/inv*100) : null;
+    res = t.md==='LSI'||t.md==='LSIT' ? lsi : t.md==='ZAYIF' ? (hy>0?Math.min(R,L):Math.max(R,L)) : t.md==='FARK' ? Math.abs(R-L) : t.md==='TOPLAM' ? R+L : t.md==='ENIYI' ? (hy>0?Math.max(R,L):Math.min(R,L)) : lsi;
+  }
+  if (res==null) res=V;
+  let rate='', col='#777';
+  const th=(t.th||[]).filter(x=>x!=null);
+  if (res!=null && th.length){
+    if (t.y===1){ const k=th.filter(x=>res>=x).length; rate=RL[Math.min(k,4)]; col=RC[Math.min(k,4)] }
+    else if (t.y===-1){ const k=th.filter(x=>res<=x).length; rate=RL[Math.min(k,4)]; col=RC[Math.min(k,4)] }
+    else if (t.y===2){ const ok=res>=th[0]; rate=ok?'Geçti':'Kaldı'; col=ok?RC[3]:RC[0] }
+    else if (t.y===-2){ const ok=res<=th[0]; rate=ok?'Geçti':'Kaldı'; col=ok?RC[3]:RC[0] }
+  }
+  let lsiBad = lsi!=null && t.lsi && lsi < t.lsi;
+  return {res, lsi, rate, col, lsiBad};
+}
+function tdraft(){ return store.get('pf_tdraft', null) }
+function setTdraft(d){ store.set('pf_tdraft', d) }
+function newTest(athId){ setTdraft({athId, date:new Date().toISOString().slice(0,10), side:'', pack:'', note:'', items:[]}); S.av={p:'test'}; render() }
+function testEntryHTML(){
+  const d=tdraft(); if(!d){ S.av={p:'list'}; return athHTML() }
+  const a=dbGet(d.athId)||{ad:'?'}; const T=TD();
+  const cats=[...new Set(T.tests.map(t=>t.k))];
+  const q=norm(S.tq||''), cat=S.tc||'';
+  const cand = (q||cat) ? T.tests.filter(t=>(!cat||t.k===cat) && (!q || norm(t.t+' '+t.c+' '+(t.w||'')).includes(q)) && !d.items.some(i=>i.c===t.c)).slice(0,30) : [];
+  const rows = d.items.map((it,i)=>{ const t=tByC(it.c); if(!t) return ''; const e=evalTest(t,it,d.side); const bi=!!t.md;
+    return `<div class="pi" data-ti="${i}"><div class="top"><div class="t"><div class="nm"><span class="code">${esc(t.c)}</span>${esc(t.t)}</div><div class="en">${esc(t.u||'')}${t.hd?' · hedef: '+esc(t.hd):''}</div></div>
+      <div class="ctl"><button data-tinfo="${t.c}">ⓘ</button><button class="del" data-trm="${i}">✕</button></div></div>
+      <div class="row tr">${bi?`<div><label>Sağ</label><input inputmode="decimal" data-tk="r" value="${esc(it.r||'')}"></div><div><label>Sol</label><input inputmode="decimal" data-tk="l" value="${esc(it.l||'')}"></div>`:`<div style="grid-column:span 2"><label>Değer (${esc(t.u||'')})</label><input inputmode="decimal" data-tk="v" value="${esc(it.v||'')}"></div>`}
+       <div><label>Sonuç</label><div class="res">${e.res!=null?r1(e.res):'—'}</div></div><div><label>LSI</label><div class="res" style="${e.lsiBad?'color:#C62828':''}">${e.lsi!=null?'%'+r1(e.lsi):'—'}</div></div>
+       <div><label>Değerl.</label><div class="res" style="color:${e.col}">${esc(e.rate||'—')}</div></div></div></div>` }).join('');
+  return `<button class="btn bclear" data-back="1">‹ ${esc(a.ad)}</button><h3>Test girişi – ${esc(a.ad)}</h3>
+   <div class="pform"><div><label class="l">Tarih</label><input type="date" data-tf="date" value="${esc(d.date)}"></div>
+    <div><label class="l">Sakat taraf (LSI için)</label><select data-tf="side"><option value="">Yok / bilinmiyor</option>${['Sağ','Sol'].map(s=>`<option ${d.side===s?'selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="full"><label class="l">Hazır test paketi ekle</label><select id="tpack"><option value="">— paket seç —</option>${Object.keys(T.packs).map(p=>`<option ${d.pack===p?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+    <div class="full"><label class="l">Not</label><input type="text" data-tf="note" value="${esc(d.note)}"></div></div>
+   <div class="sec">Testler (${d.items.length})</div>${rows || '<div class="empty" style="padding:14px">Paket seç ya da aşağıdan test ekle.</div>'}
+   <div class="sec">Test ekle</div><div class="filters"><select id="tc"><option value="">Tüm kategoriler</option>${cats.map(c=>`<option ${c===cat?'selected':''}>${esc(c)}</option>`).join('')}</select><input type="search" id="tq" placeholder="Test ara…" value="${esc(S.tq||'')}"></div>
+   ${cand.map(t=>`<div class="sv"><div class="t"><b>${esc(t.t)}</b><span>${esc(t.k)} · ${esc(t.u||'')}${t.md?' · sağ/sol':''}</span></div><button class="btn badd" data-tadd="${t.c}">+ Ekle</button></div>`).join('') || ((q||cat)?'<div class="en">Sonuç yok.</div>':'<div class="en">Kategori seç ya da arama yaz.</div>')}
+   <div class="bar" style="position:sticky;bottom:70px"><button class="btn bsave" id="tSave">💾 Testi kaydet</button><button class="btn bclear" id="tCancel">Vazgeç</button></div>`;
+}
+function testInfo(c){
+  const t=tByC(c);
+  $('#sheetIn').innerHTML = `<button class="x" id="cls">✕</button><div class="nm" style="font-size:17px;margin:4px 0 8px"><span class="code">${esc(t.c)}</span>${esc(t.t)}</div>
+   <div class="kv">${[['Kategori',t.k],['Alt grup',t.s],['Ne ölçer',t.w],['Ekipman',t.eq],['Deneme',t.tr],['Birim',t.u],['Yön',t.yd],['Hedef / kriter',t.hd],['Kaynak',t.src]].filter(r=>r[1]).map(r=>`<div>${r[0]}</div><div>${esc(r[1])}</div>`).join('')}</div>
+   ${t.pr?`<h4 style="margin:8px 0 4px">Nasıl yapılır</h4><div class="steps">${esc(t.pr)}</div>`:''}
+   ${(t.lb||[]).some(Boolean)?`<h4 style="margin:12px 0 4px">Normlar</h4><div class="kv">${(t.lb||[]).map((x,i)=>x?`<div style="color:${RC[i]}">${RL[i]}</div><div>${esc(x)}</div>`:'').join('')}</div>`:''}
+   ${t.v?`<div class="acts"><a class="btn bvid" href="${t.v}" target="_blank" rel="noopener">▶ Videoyu izle</a></div>`:''}`;
+  $('#sheet').classList.add('on');
+}
+function saveTest(){
+  const d=tdraft(); if(!d || !d.items.length) return toast('Test eklenmedi');
+  const items=d.items.filter(i=>[i.r,i.l,i.v].some(x=>num(x)!=null));
+  if(!items.length) return toast('Hiç değer girilmedi');
+  const id=d.id||uid(); dbPut('test', id, {...d, items, id:undefined});
+  setTdraft(null); S.av={p:'det', id:d.athId}; toast('Test kaydedildi ✓'); render();
+}
+function progressHTML(T){
+  if(!T.length) return '<div class="empty" style="padding:14px">Test girildikçe burada gelişim görünür.</div>';
+  const by={};
+  [...T].reverse().forEach(s=>(s.items||[]).forEach(it=>{ const t=tByC(it.c); if(!t) return; const e=evalTest(t,it,s.side); if(e.res==null) return; (by[it.c]=by[it.c]||[]).push({d:s.date, v:e.res, e}) }));
+  return Object.entries(by).map(([c,arr])=>{ const t=tByC(c), last=arr[arr.length-1], prev=arr[arr.length-2];
+    const ch = prev ? last.v-prev.v : null; const good = ch==null?null:((t.y<0||t.hy<0)? ch<0 : ch>0);
+    return `<div class="sv"><div class="t"><b>${esc(t.t)}</b><span>${esc(trDate(last.d))} · <b style="color:${last.e.col}">${r1(last.v)} ${esc(t.md==='LSI'||t.md==='LSIT'?'%':(t.u||''))}</b> ${last.e.rate?'· '+esc(last.e.rate):''} ${ch!=null&&ch!==0?`· <span style="color:${good?'#2E7D32':'#C62828'}">${ch>0?'▲':'▼'} ${r1(Math.abs(ch))}</span>`:''}</span></div>${spark(arr.map(x=>x.v))}</div>` }).join('');
+}
+function spark(v){ if(v.length<2) return ''; const w=90,h=30,mn=Math.min(...v),mx=Math.max(...v),r=mx-mn||1;
+  const p=v.map((x,i)=>`${(i/(v.length-1)*w).toFixed(1)},${(h-3-(x-mn)/r*(h-6)).toFixed(1)}`).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${p}" fill="none" stroke="#E4572E" stroke-width="2"/></svg>` }
+function printTest(t){
+  const a=dbGet(t.athId)||{};
+  const rows=(t.items||[]).map((it,i)=>{ const x=tByC(it.c); if(!x) return ''; const e=evalTest(x,it,t.side);
+    return `<tr><td>${i+1}</td><td><b>${esc(x.t)}</b><br><span style="color:#666">${esc(x.k)}</span></td><td>${esc(x.u||'')}</td><td>${esc(it.r||'')}</td><td>${esc(it.l||'')}</td><td>${esc(it.v||'')}</td><td><b>${e.res!=null?r1(e.res):''}</b></td><td style="${e.lsiBad?'color:#C62828;font-weight:700':''}">${e.lsi!=null?'%'+r1(e.lsi):''}</td><td style="color:${e.col};font-weight:700">${esc(e.rate)}</td><td>${esc(x.hd||'')}</td><td>${x.v?`<a href="${x.v}">▶ Video</a>`:''}</td></tr>` }).join('');
+  $('#print').innerHTML=`<div class="hd"><div><h2>PERFORMANS TEST RAPORU</h2><div><b>${esc(a.ad||'')}</b> ${[a.takim,a.mevki,a.dy&&'d. '+a.dy,a.boy&&a.boy+' cm',a.kilo&&a.kilo+' kg'].filter(Boolean).map(esc).join(' · ')}</div><div>${t.pack?esc(t.pack)+' ':''}${[t.side?'Sakat taraf: '+esc(t.side):'',t.note?esc(t.note):''].filter(Boolean).join(' · ')}</div></div>
+   <div class="r"><b>${esc(trDate(t.date))}</b><br>Dr. İsmail Çiçek · UEFA Fitness Coach<br>Instagram: @powerforce_athletic</div></div>
+   <table><thead><tr><th>#</th><th>Test</th><th>Birim</th><th>Sağ</th><th>Sol</th><th>Değer</th><th>Sonuç</th><th>LSI</th><th>Değerlendirme</th><th>Hedef / kriter</th><th>Video</th></tr></thead><tbody>${rows}</tbody></table>
+   <div class="ft"><span>Dr. İsmail Çiçek · UEFA Fitness Coach</span><span>Instagram: @powerforce_athletic</span></div>`;
+  window.print();
+}
+
 /* ---------- çizim + olaylar ---------- */
 async function render(){
-  const m=S.mode; await load(m);
-  $('#ttl').textContent = m==='gym' ? 'GYM DİZAYN' : 'SAHA DİZAYN';
+  document.body.classList.toggle('nolog', !S.user);
+  if (!S.user){ $('#main').innerHTML = loginHTML(); return }
+  const m=S.mode; await load(m); if(S.view==='ath') await loadTests();
+  $('#ttl').textContent = S.view==='ath' ? 'SPORCULAR' : (m==='gym' ? 'GYM DİZAYN' : 'SAHA DİZAYN');
   document.querySelectorAll('.mode button').forEach(b=>b.classList.toggle('on', b.dataset.m===m));
   document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.view));
-  $('#main').innerHTML = (S.view==='lib' ? libHTML() : S.view==='prog' ? progHTML() : savedHTML()) + `<footer class="sig">Dr. İsmail Çiçek · UEFA Fitness Coach · Instagram: @powerforce_athletic</footer>`;
+  const body = S.view==='lib' ? libHTML() : S.view==='prog' ? progHTML() : S.view==='saved' ? savedHTML() : athHTML();
+  $('#main').innerHTML = body + `<datalist id="athl">${aths().map(a=>`<option value="${esc(a.ad)}">`).join('')}</datalist><footer class="sig">Dr. İsmail Çiçek · UEFA Fitness Coach · Instagram: @powerforce_athletic</footer>`;
   badge();
+}
+async function loadTests(){
+  if (S.data.tests) return; const r=await fetch('data/tests.json'); const d=await r.json(); d.by=Object.fromEntries(d.tests.map(t=>[t.c,t])); S.data.tests=d;
 }
 let qT;
 document.addEventListener('input', e=>{
   const t=e.target;
   if (t.id==='q'){ clearTimeout(qT); qT=setTimeout(()=>{ S.f[S.mode].q=t.value; S.limit=40; const p=t.selectionStart; render().then(()=>{ const q=$('#q'); q.focus(); q.setSelectionRange(p,p) }) },250) }
+  if (t.id==='aq' || t.id==='tq'){ clearTimeout(qT); qT=setTimeout(()=>{ S[t.id]=t.value; const p=t.selectionStart, id=t.id; render().then(()=>{ const q=$('#'+id); q.focus(); q.setSelectionRange(p,p) }) },250) }
   if (t.dataset.h){ const d=draft(); d[t.dataset.h]=t.value; saveDraft(d) }
   if (t.dataset.k){ const i=+t.closest('.pi').dataset.i, d=draft(); d.items[i][t.dataset.k]=t.value; saveDraft(d) }
+  if (t.dataset.tf){ const d=tdraft(); d[t.dataset.tf]=t.value; setTdraft(d) }
+  if (t.dataset.tk){ const box=t.closest('.pi'), i=+box.dataset.ti, d=tdraft(); d.items[i][t.dataset.tk]=t.value; setTdraft(d);
+    const x=tByC(d.items[i].c), ev=evalTest(x,d.items[i],d.side), rs=box.querySelectorAll('.res');
+    rs[0].textContent = ev.res!=null?r1(ev.res):'—'; rs[1].textContent = ev.lsi!=null?'%'+r1(ev.lsi):'—'; rs[1].style.color = ev.lsiBad?'#C62828':''; rs[2].textContent = ev.rate||'—'; rs[2].style.color = ev.col }
 });
 document.addEventListener('change', e=>{
   const t=e.target, f=S.f[S.mode];
   if (['grp','md','ph','cat'].includes(t.id)){ f[t.id]=t.value; S.limit=40; render() }
   if (t.dataset.h){ const d=draft(); d[t.dataset.h]=t.value; saveDraft(d) }
+  if (t.dataset.tf){ const d=tdraft(); d[t.dataset.tf]=t.value; setTdraft(d); if(t.dataset.tf==='side') render() }
+  if (t.id==='tc'){ S.tc=t.value; render() }
+  if (t.id==='tpack' && t.value){ const d=tdraft(); d.pack=t.value; (TD().packs[t.value]||[]).forEach(c=>{ if(!d.items.some(i=>i.c===c)) d.items.push({c}) }); setTdraft(d); render() }
 });
 document.addEventListener('click', async e=>{
-  const t=e.target.closest('button,[data-d]'); if(!t) return;
-  if (t.dataset.m){ S.mode=t.dataset.m; S.limit=40; return render() }
-  if (t.dataset.v){ S.view=t.dataset.v; window.scrollTo(0,0); return render() }
+  const t=e.target.closest('button,[data-d],[data-ath]'); if(!t) return;
+  if (t.id==='lgIn') return doLogin('in'); if (t.id==='lgUp') return doLogin('up'); if (t.id==='lgFg') return doLogin('fg');
+  if (t.id==='logout'){ if(confirm('Çıkış yapılsın mı?')){ await sb.auth.signOut(); DB.s={recs:{},last:null,uid:null}; dbSave(); onUser(null) } return }
+  if (t.dataset.m){ S.mode=t.dataset.m; S.limit=40; if(S.view==='ath') S.view='lib'; return render() }
+  if (t.dataset.v){ S.view=t.dataset.v; if(S.view==='ath' && (S.av||{}).p!=='test') S.av={p:'list'}; window.scrollTo(0,0); return render() }
   if (t.dataset.a){ toggle(t.dataset.a); if($('#sheet').classList.contains('on')) detail(t.dataset.a); return }
   if (t.dataset.d){ return detail(t.dataset.d) }
   if (t.id==='cls'){ return $('#sheet').classList.remove('on') }
@@ -357,13 +596,40 @@ document.addEventListener('click', async e=>{
   if (t.id==='pdf') return printProgram(draft(), S.mode);
   if (t.id==='share') return shareProgram();
   if (t.id==='clear'){ if(confirm('Program temizlensin mi? (Kayıtlı programlar silinmez)')){ saveDraft({name:'',ath:'',date:new Date().toISOString().slice(0,10),md:'',note:'',items:[]}); render() } return }
-  if (t.dataset.open!==undefined){ const p=savedAll()[+t.dataset.open]; S.mode=p.mode||'gym'; saveDraft({id:p.id,name:p.name,ath:p.ath,date:p.date,md:p.md,note:p.note,items:p.items}, S.mode); S.view='prog'; return render() }
-  if (t.dataset.pdf!==undefined){ const p=savedAll()[+t.dataset.pdf]; return printProgram(p, p.mode||'gym') }
-  if (t.dataset.del!==undefined){ if(confirm('Bu kayıtlı program silinsin mi?')){ const L=savedAll(); L.splice(+t.dataset.del,1); store.set('pf_programs_v1',L); render() } return }
+  if (t.dataset.open){ const p=dbGet(t.dataset.open); if(!p) return; S.mode=p.mode||'gym'; await load(S.mode); saveDraft({id:p.id,name:p.name,ath:p.ath,athId:p.athId,date:p.date,md:p.md,note:p.note,items:p.items||[]}, S.mode); S.view='prog'; return render() }
+  if (t.dataset.pdf){ const p=dbGet(t.dataset.pdf); return p && printProgram(p, p.mode||'gym') }
+  if (t.dataset.del){ if(confirm('Bu kayıtlı program silinsin mi?')){ dbDel(t.dataset.del); render() } return }
+  // sporcular
+  if (t.dataset.ath){ S.av={p:'det', id:t.dataset.ath}; window.scrollTo(0,0); return render() }
+  if (t.dataset.back){ const v=S.av||{}; S.av = v.p==='test' ? {p:'det', id:(tdraft()||{}).athId} : v.p==='edit' && v.id ? {p:'det', id:v.id} : {p:'list'}; return render() }
+  if (t.id==='athNew'){ S.av={p:'edit'}; return render() }
+  if (t.id==='athEdit'){ S.av={p:'edit', id:t.dataset.id}; return render() }
+  if (t.id==='athSave'){ const v={}; document.querySelectorAll('[data-af]').forEach(x=>v[x.dataset.af]=x.value.trim()); if(!v.ad) return toast('Ad soyad yaz');
+    const id=t.dataset.id||uid(); dbPut('sporcu', id, v); S.av={p:'det', id}; toast('Sporcu kaydedildi ✓'); return render() }
+  if (t.id==='athDel'){ if(confirm('Sporcu silinsin mi? (Testleri de silinir)')){ testsOf(t.dataset.id).forEach(x=>dbDel(x.id)); dbDel(t.dataset.id); S.av={p:'list'}; render() } return }
+  if (t.id==='tNew'){ await loadTests(); return newTest(t.dataset.id) }
+  if (t.id==='pNew'){ const a=dbGet(t.dataset.id); const d=draft(); d.ath=a.ad; d.athId=a.id; saveDraft(d); S.view='lib'; toast(a.ad+' için program: kütüphaneden ekle'); return render() }
+  if (t.dataset.tadd){ const d=tdraft(); d.items.push({c:t.dataset.tadd}); setTdraft(d); return render() }
+  if (t.dataset.trm!==undefined){ const d=tdraft(); d.items.splice(+t.dataset.trm,1); setTdraft(d); return render() }
+  if (t.dataset.tinfo){ return testInfo(t.dataset.tinfo) }
+  if (t.id==='tSave') return saveTest();
+  if (t.id==='tCancel'){ if(confirm('Test girişi iptal edilsin mi?')){ const a=(tdraft()||{}).athId; setTdraft(null); S.av=a?{p:'det',id:a}:{p:'list'}; render() } return }
+  if (t.dataset.topen){ const x=dbGet(t.dataset.topen); setTdraft({...x}); S.av={p:'test'}; return render() }
+  if (t.dataset.tpdf){ await loadTests(); return printTest(dbGet(t.dataset.tpdf)) }
+  if (t.dataset.tdel){ if(confirm('Bu test oturumu silinsin mi?')){ dbDel(t.dataset.tdel); render() } return }
 });
+document.addEventListener('keydown', e=>{ if(e.key==='Enter' && (e.target.id==='lgPass'||e.target.id==='lgMail')) doLogin('in') });
 $('#sheet').addEventListener('click', e=>{ if(e.target.id==='sheet') $('#sheet').classList.remove('on') });
-render().catch(err=>{ $('#main').innerHTML='<div class="empty">Veriler yüklenemedi. İnternet bağlantını kontrol et.</div>'; console.error(err) });
+(async()=>{
+  try{
+    if (!sb){ S.user={id:'local', email:''}; return render() }      // kütüphane yüklenemezse yerel çalış
+    const {data} = await sb.auth.getSession();
+    sb.auth.onAuthStateChange((ev, ses)=>{ const u=ses?ses.user:null; if((u&&u.id)!==(S.user&&S.user.id)) onUser(u) });
+    await onUser(data.session ? data.session.user : null);
+  }catch(err){ $('#main').innerHTML='<div class="empty">Yüklenemedi. İnternet bağlantını kontrol et.</div>'; console.error(err) }
+})();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
 </script>
 </body>
 </html>
