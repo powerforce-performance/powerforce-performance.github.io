@@ -695,7 +695,7 @@ async function render(){
   document.querySelectorAll('.mode button').forEach(b=>b.classList.toggle('on', b.dataset.m===m));
   document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.view));
   const body = S.view==='lib' ? libHTML() : S.view==='prog' ? progHTML() : S.view==='saved' ? savedHTML() : (S.av&&S.av.p==='admin') ? adminHTML() : athHTML();
-  $('#main').innerHTML = body + `<datalist id="athl">${aths().map(a=>`<option value="${esc(a.ad)}">`).join('')}</datalist><footer class="sig">Dr. İsmail Çiçek · UEFA Fitness Coach · Instagram: @powerforce_athletic</footer>`;
+  $('#main').innerHTML = body + `<datalist id="athl">${aths().map(a=>`<option value="${esc(a.ad)}">`).join('')}</datalist><footer class="sig">Dr. İsmail Çiçek · UEFA Fitness Coach · Instagram: @powerforce_athletic<br>sürüm ${APPV}</footer>`;
   badge();
   const ab=$('#admin'); if(ab) ab.hidden = !(S.lic && S.lic.yonetici);
 }
@@ -786,7 +786,11 @@ $('#sheet').addEventListener('click', e=>{ if(e.target.id==='sheet') $('#sheet')
     await onUser(data.session ? data.session.user : null);
   }catch(err){ $('#main').innerHTML='<div class="empty">Yüklenemedi. İnternet bağlantını kontrol et.</div>'; console.error(err) }
 })();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+const APPV='8';
+if ('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(r=>{ r.update(); setInterval(()=>r.update(), 30*60*1000) }).catch(()=>{});
+  let reloaded=false; navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(reloaded) return; reloaded=true; location.reload() });
+}
 
 </script>
 </body>
