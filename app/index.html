@@ -116,6 +116,8 @@ footer.sig{text-align:center;font-size:11px;color:var(--mut);margin-top:20px}
  #print tr{page-break-inside:avoid}
 }
 .adm{border:0;background:#111827;color:#fff;border-radius:10px;padding:7px 9px;font-size:16px;cursor:pointer}
+.fbar{display:flex;gap:8px;margin:-2px 0 8px;flex-wrap:wrap}.fbar .btn{padding:7px 10px}
+.more2{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:5px;background:#bbb;vertical-align:middle}
 .dot.ok{background:#2E7D32}.dot.busy{background:var(--amber)}.dot.off{background:#C62828}
 .login{max-width:420px;margin:30px auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
@@ -127,7 +129,7 @@ body.nolog nav.bottom,body.nolog .mode{display:none}
 .pi .row.tr{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:420px){.pi .row.tr{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.pi .row.tr input{font-size:14px}}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="lib/supabase.min.js"></script>
 </head>
 <body>
 <header>
@@ -193,7 +195,7 @@ function toggle(c){
     const ph = S.f.gym.ph;
     if (S.mode==='gym' && ph && S.data.gym.phase_dose[ph+'|'+c]) dose = S.data.gym.phase_dose[ph+'|'+c];
     const [set, rep] = S.mode==='gym' ? splitSR(dose) : splitSR(dose);
-    d.items.push({c, set, rep, load: S.mode==='gym' ? (x.i||'') : (x.i||''), tempo: S.mode==='gym' ? (x.tp||'') : '', rest: x.rs||'', note:''});
+    d.items.push({c, set, rep, load: S.mode==='gym' ? (x.i||'') : (x.i||''), tempo: S.mode==='gym' ? (x.tp||'') : (x.ar||''), rest: x.rs||'', note:''});
     toast('Programa eklendi ✓');
   }
   saveDraft(d); render();
@@ -201,16 +203,30 @@ function toggle(c){
 function badge(){ const n = draft().items.length; const b=$('#badge'); b.hidden = !n; b.textContent = n }
 
 /* ---------- kütüphane ---------- */
+const splitTok = (v, re) => String(v||'').split(re).map(x=>x.trim()).filter(x=>x && x!=='—' && x!=='–');
+const GF = [  // [anahtar, etiket, alan, tür]  tür: eq = tam eşleşme, tok = parçalı
+  ['k','Ana kategori','k','eq'], ['p','Hareket paterni','p','eq'], ['d','Dominantlık','d','eq'], ['f','Fokus','f','eq'],
+  ['l','Uni / Bilateral','l','eq'], ['lv','Seviye','lv','eq'], ['h','Antrenman hedefi','h','eq'],
+  ['eq','Ekipman','eq','tok'], ['mus','Hedef kas','m','tok'], ['dn','Uygun dönem','dn','tok']];
+const SF = [['s','Alt tür','s','eq'], ['ld','Yük profili','ld','eq'], ['n','Oyuncu sayısı','n','eq']];
+const TOKRE = {eq:/\s*(?:\+|\/|,|·|&)\s*/, m:/,\s*|\s*\(\+\s*|\)/, dn:/\s*·\s*/};
+function tokOf(x, field){ let t=splitTok(x[field], TOKRE[field]||/,/); if(field==='dn') t=t.map(v=>v.replace(/\s*\(.*\)$/,'')); return t }
+function facet(m, field, kind){
+  const c={}; S.data[m].items.forEach(x=>{ (kind==='tok'?tokOf(x,field):[x[field]]).forEach(v=>{ if(v===undefined||v===null||v===''||v==='—') return; v=String(v); c[v]=(c[v]||0)+1 }) });
+  return Object.entries(c).sort((a,b)=> field==='lv' ? a[0]-b[0] : b[1]-a[1]).slice(0, kind==='tok'?40:200);
+}
 function filtered(){
   const m=S.mode, d=S.data[m], f=S.f[m], q=norm(f.q).split(/\s+/).filter(Boolean);
   let phInj=null, phTag=null;
   if (m==='gym' && f.ph){ const mm = f.ph.match(/^(.+?) – Faz (\d+)/); if(mm){ const inj = d.inj.find(z=>z[1]===mm[1]||z[0]===mm[1]); phInj = inj ? inj[0] : null; phTag='F'+mm[2] } }
+  const extra = (m==='gym'?GF:SF).filter(([k])=>f[k]);
   return d.items.filter(x =>
     (!q.length || q.every(t=>x._s.includes(t))) &&
     (m!=='gym' || !f.grp || String(x.g)===f.grp || (S.data.gym.groups[x.g]===f.grp)) &&
     (m!=='saha' || !f.cat || x.k===f.cat) &&
     (!f.md || (x.md||[]).includes(f.md)) &&
-    (!phInj || ((x.rh||{})[phInj]||'').split(' · ').includes(phTag))
+    (!phInj || ((x.rh||{})[phInj]||'').split(' · ').includes(phTag)) &&
+    extra.every(([k,,field,kind]) => kind==='tok' ? tokOf(x,field).includes(f[k]) : String(x[field])===f[k])
   );
 }
 function cardHTML(x){
@@ -227,23 +243,28 @@ function cardHTML(x){
 }
 function libHTML(){
   const m=S.mode, d=S.data[m], f=S.f[m];
-  const opt = (arr, sel, ph) => `<option value="">${ph}</option>` + arr.map(v=>`<option ${v===sel?'selected':''} value="${esc(v)}">${esc(v)}</option>`).join('');
+  const opt = (arr, sel, ph) => `<option value="">${ph}</option>` + arr.map(v=>{ const [val,n]=Array.isArray(v)?v:[v]; return `<option ${String(val)===String(sel)?'selected':''} value="${esc(val)}">${esc(val)}${n?` (${n})`:''}</option>` }).join('');
+  const defs = m==='gym'?GF:SF, act = defs.filter(([k])=>f[k]).length;
   let fl;
   if (m==='gym'){
     const grps=[...new Set(Object.values(d.groups))];
     fl = `<input class="full" type="search" id="q" placeholder="Ara: squat, nordic, KD-23, hamstring…" value="${esc(f.q)}">
-     <select id="grp">${opt(grps,f.grp,'Tüm gruplar')}</select>
-     <select id="md">${opt(MDS,f.md,'Tüm MD günleri')}</select>
-     <select class="full" id="ph">${opt(d.phases,f.ph,'Rehab / RTP fazı (hepsi)')}</select>`;
+     <select data-f="grp">${opt(grps,f.grp,'Tüm gruplar')}</select>
+     <select data-f="md">${opt(MDS,f.md,'Tüm MD günleri')}</select>
+     <select class="full" data-f="ph">${opt(d.phases,f.ph,'Rehab / RTP fazı (hepsi)')}</select>`;
   } else {
     const cats=[...new Set(d.items.map(x=>x.k))];
     fl = `<input class="full" type="search" id="q" placeholder="Ara: SSG, rondo, sprint, ACL…" value="${esc(f.q)}">
-     <select id="cat">${opt(cats,f.cat,'Tüm kategoriler')}</select>
-     <select id="md">${opt(MDS,f.md,'Tüm MD günleri')}</select>`;
+     <select data-f="cat">${opt(cats,f.cat,'Tüm kategoriler')}</select>
+     <select data-f="md">${opt(MDS,f.md,'Tüm MD günleri')}</select>`;
   }
+  const more = S.more ? `<div class="filters more2">${defs.map(([k,l,field,kind])=>`<div><label class="l">${l}</label><select data-f="${k}">${opt(facet(m,field,kind),f[k],'Hepsi')}</select></div>`).join('')}</div>` : '';
+  const anyF = Object.entries(f).some(([k,v])=>v && k!=='q') || f.q;
   const L = filtered();
   const info = (m==='gym' && f.ph) ? `<div class="phinfo"><b>${esc(f.ph)}</b><br>${esc(d.phase_info[f.ph]||'')}</div>` : '';
-  return `<div class="filters">${fl}</div>${info}<div class="count"><span>${L.length} ${m==='gym'?'egzersiz':'çalışma'}</span><span>Program: ${draft().items.length}</span></div>
+  return `<div class="filters">${fl}</div>
+   <div class="fbar"><button class="btn bclear" id="moreF">${S.more?'▴ Daha az filtre':'▾ Diğer filtreler'}${act?` (${act})`:''}</button>${anyF?'<button class="btn bclear" id="clrF">✕ Filtreleri temizle</button>':''}</div>${more}
+   ${info}<div class="count"><span>${L.length} ${m==='gym'?'egzersiz':'çalışma'}</span><span>Program: ${draft().items.length}</span></div>
    <div class="list">${L.slice(0,S.limit).map(cardHTML).join('')}</div>${L.length>S.limit?`<button class="btn more" id="more">Daha fazla göster (${L.length-S.limit})</button>`:''}`;
 }
 function detail(c){
@@ -271,7 +292,7 @@ function progHTML(){
   const m=S.mode, d=draft(), L=ordered(d);
   const head = `<div class="pform">
     <div class="full"><label class="l">Program adı</label><input type="text" data-h="name" value="${esc(d.name)}" placeholder="ör. KUVVET – POWER (MD-4)"></div>
-    <div><label class="l">Sporcu / Takım</label><input type="text" data-h="ath" list="athl" value="${esc(d.ath)}" placeholder="Sporcu seç ya da yaz"></div>
+    <div><label class="l">Sporcu / Takım</label>${athSelect(d)}</div>
     <div><label class="l">Tarih</label><input type="date" data-h="date" value="${esc(d.date)}"></div>
     <div><label class="l">MD günü</label><select data-h="md"><option value="">—</option>${MDS.map(v=>`<option ${v===d.md?'selected':''}>${v}</option>`).join('')}</select></div>
     <div><label class="l">Not</label><input type="text" data-h="note" value="${esc(d.note)}"></div></div>`;
@@ -280,31 +301,21 @@ function progHTML(){
   L.forEach((o,n)=>{
     const g=groupName(m,o.x); if (g!==last){ html+=`<div class="sec">${esc(g)}</div>`; last=g }
     const im=imgOf(m,o.x);
-    html+=`<div class="pi" data-i="${o.ix}"><div class="top">${im?`<div class="th" data-d="${o.c}">${thumb(m,o.x)}</div>`:''}<div class="t"><div class="nm"><span class="code">${esc(o.c)}</span>${n+1}. ${esc(o.x.t)}</div><div class="en">${esc(o.x.en||o.x.s||'')}</div></div>
+    html+=`<div class="pi" data-i="${o.ix}"><div class="top">${im?`<div class="th" data-d="${o.c}">${thumb(m,o.x)}</div>`:''}<div class="t"><div class="nm"><span class="code">${esc(o.c)}</span>${n+1}. ${esc(o.x.t)}</div><div class="en">${esc(o.x.en||o.x.s||'')}</div><div class="acts" style="padding-top:5px">${animOf(m,o.x)?`<a class="btn b3d" href="${animOf(m,o.x)}" target="_blank" rel="noopener">▶ ${m==='gym'?'3D':'Hareketli'}</a>`:''}${vidOf(m,o.x)?`<a class="btn bvid" href="${vidOf(m,o.x)}" target="_blank" rel="noopener">▶ Video</a>`:''}</div></div>
      <div class="ctl"><button data-mv="-1">▲</button><button data-mv="1">▼</button><button class="del" data-rm="1">✕</button></div></div>
      <div class="row">${[['set','Set'],['rep',m==='gym'?'Tekrar':'Süre'],['load',m==='gym'?'Yük / RPE':'Şiddet'],['tempo',m==='gym'?'Tempo':'Alan'],['rest','Dinlenme']].map(([k,l])=>`<div><label>${l}</label><input data-k="${k}" value="${esc(o[k])}"></div>`).join('')}</div>
      <input class="nt" type="text" data-k="note" value="${esc(o.note)}" placeholder="Not (ör. A1-A2 süperset)"></div>`;
   });
-  return head + `<div class="bar"><button class="btn bsave" id="save">💾 Kaydet</button><button class="btn bpdf" id="pdf">📄 PDF / Yazdır</button><button class="btn bshare" id="share">➦ Paylaş</button><button class="btn bclear" id="clear">Temizle</button></div>` + html;
+  return head + `<div class="bar"><button class="btn bsave" id="save">💾 Kaydet</button><button class="btn bpdf" id="pdf">📄 PDF</button><button class="btn bshare" id="share">➦ Paylaş</button><button class="btn bclear" id="clear">Temizle</button></div>` + html;
 }
 
-/* ---------- PDF / paylaş ---------- */
-async function printProgram(p, m){
-  await load(m);
-  const L=ordered(p,m); let last='', rows='';
-  L.forEach((o,n)=>{ const g=groupName(m,o.x); if(g!==last){ rows+=`<tr><td class="s" colspan="11">${esc(g)}</td></tr>`; last=g }
-    const an=animOf(m,o.x), vd=vidOf(m,o.x), im=imgOf(m,o.x);
-    rows+=`<tr><td>${n+1}</td><td>${im?`<div class="th">${thumb(m,o.x)}</div>`:''}</td><td><b>${esc(o.c)}</b></td><td><b>${esc(o.x.t)}</b><br><span style="color:#666">${esc(o.x.en||'')}</span></td><td>${esc(o.set)}</td><td>${esc(o.rep)}</td><td>${esc(o.load)}</td><td>${esc(o.tempo)}</td><td>${esc(o.rest)}</td><td>${esc(o.note)}</td>
-     <td>${vd?`<a href="${vd}">▶ Video</a><br>`:''}${an?`<a href="${new URL(an,location.href).href}">▶ ${m==='gym'?'3D':'Hareketli'}</a>`:''}</td></tr>` });
-  $('#print').innerHTML = `<div class="hd"><div><h2>${esc(p.name|| (m==='gym'?'ANTRENMAN PROGRAMI':'SAHA ANTRENMAN PLANI'))}</h2><div>${esc(p.ath||'')} ${p.md?'· '+esc(p.md):''} ${p.note?'· '+esc(p.note):''}</div></div>
-    <div class="r"><b>${esc(trDate(p.date))}</b><br>Dr. İsmail Çiçek · UEFA Fitness Coach<br>Instagram: @powerforce_athletic</div></div>
-    <table><thead><tr><th>#</th><th>Görsel</th><th>Kod</th><th>${m==='gym'?'Egzersiz':'Çalışma'}</th><th>Set</th><th>${m==='gym'?'Tekrar':'Süre'}</th><th>${m==='gym'?'Yük/RPE':'Şiddet'}</th><th>${m==='gym'?'Tempo':'Alan'}</th><th>Dinlenme</th><th>Not</th><th>Video / ${m==='gym'?'3D':'Hareketli'}</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="ft"><span>Dr. İsmail Çiçek · UEFA Fitness Coach</span><span>Instagram: @powerforce_athletic</span></div>`;
-  if(m==='gym'){ const ss=[...new Set(L.map(o=>(S.data.gym.sp[o.x.im]||[])[0]).filter(v=>v!==undefined))]; await Promise.all(ss.map(n=>new Promise(r=>{const i=new Image();i.onload=i.onerror=r;i.src='sp/s'+n+'.jpg'}))) }
-  const imgs=[...document.querySelectorAll('#print img')];
-  await Promise.all(imgs.map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r})));
-  window.print();
+function athSelect(d){
+  const A=aths(); const cur=A.find(a=>a.id===d.athId) || athByName(d.ath);
+  const other = !cur && d.ath;
+  return `<select data-ath-sel="1"><option value="">— sporcu seç —</option>${A.map(a=>`<option value="${a.id}" ${cur&&cur.id===a.id?'selected':''}>${esc(a.ad)}</option>`).join('')}<option value="__other" ${other||S.athOther?'selected':''}>Takım / diğer (elle yaz)…</option></select>
+   ${(other||S.athOther)?`<input type="text" data-h="ath" value="${esc(d.ath)}" placeholder="Takım ya da kişi adı" style="margin-top:6px">`:''}`;
 }
+/* ---------- PDF / paylaş ---------- */
 async function shareProgram(){
   const m=S.mode, d=draft(), L=ordered(d); if(!L.length) return toast('Program boş');
   let t=`*${d.name||'Antrenman programı'}*\n${d.ath?d.ath+' · ':''}${d.date}${d.md?' · '+d.md:''}\n`, last='';
@@ -588,15 +599,90 @@ function progressHTML(T){
 function spark(v){ if(v.length<2) return ''; const w=90,h=30,mn=Math.min(...v),mx=Math.max(...v),r=mx-mn||1;
   const p=v.map((x,i)=>`${(i/(v.length-1)*w).toFixed(1)},${(h-3-(x-mn)/r*(h-6)).toFixed(1)}`).join(' ');
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${p}" fill="none" stroke="#E4572E" stroke-width="2"/></svg>` }
-function printTest(t){
-  const a=dbGet(t.athId)||{};
-  const rows=(t.items||[]).map((it,i)=>{ const x=tByC(it.c); if(!x) return ''; const e=evalTest(x,it,t.side);
-    return `<tr><td>${i+1}</td><td><b>${esc(x.t)}</b><br><span style="color:#666">${esc(x.k)}</span></td><td>${esc(x.u||'')}</td><td>${esc(it.r||'')}</td><td>${esc(it.l||'')}</td><td>${esc(it.v||'')}</td><td><b>${e.res!=null?r1(e.res):''}</b></td><td style="${e.lsiBad?'color:#C62828;font-weight:700':''}">${e.lsi!=null?'%'+r1(e.lsi):''}</td><td style="color:${e.col};font-weight:700">${esc(e.rate)}</td><td>${esc(x.hd||'')}</td><td>${x.v?`<a href="${x.v}">▶ Video</a>`:''}</td></tr>` }).join('');
-  $('#print').innerHTML=`<div class="hd"><div><h2>PERFORMANS TEST RAPORU</h2><div><b>${esc(a.ad||'')}</b> ${[a.takim,a.mevki,a.dy&&'d. '+a.dy,a.boy&&a.boy+' cm',a.kilo&&a.kilo+' kg'].filter(Boolean).map(esc).join(' · ')}</div><div>${t.pack?esc(t.pack)+' ':''}${[t.side?'Sakat taraf: '+esc(t.side):'',t.note?esc(t.note):''].filter(Boolean).join(' · ')}</div></div>
-   <div class="r"><b>${esc(trDate(t.date))}</b><br>Dr. İsmail Çiçek · UEFA Fitness Coach<br>Instagram: @powerforce_athletic</div></div>
-   <table><thead><tr><th>#</th><th>Test</th><th>Birim</th><th>Sağ</th><th>Sol</th><th>Değer</th><th>Sonuç</th><th>LSI</th><th>Değerlendirme</th><th>Hedef / kriter</th><th>Video</th></tr></thead><tbody>${rows}</tbody></table>
-   <div class="ft"><span>Dr. İsmail Çiçek · UEFA Fitness Coach</span><span>Instagram: @powerforce_athletic</span></div>`;
-  window.print();
+
+/* ---------- gerçek PDF dosyası (telefon + bilgisayar) ---------- */
+const loadJS = src => new Promise((ok,no)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const e=document.createElement('script'); e.src=src; e.onload=ok; e.onerror=no; document.head.appendChild(e) });
+async function pdfLib(){
+  if (!window.jspdf){ await loadJS('lib/jspdf.umd.min.js') }
+  if (!window.jspdf.jsPDF.API.autoTable){ await loadJS('lib/jspdf.plugin.autotable.min.js') }
+  if (!S.fonts){ const [r,b]=await Promise.all(['font/r.b64','font/b.b64'].map(u=>fetch(u).then(x=>x.text()))); S.fonts={r,b} }
+  const doc = new window.jspdf.jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  doc.addFileToVFS('dv.ttf', S.fonts.r); doc.addFont('dv.ttf','dv','normal');
+  doc.addFileToVFS('dvb.ttf', S.fonts.b); doc.addFont('dvb.ttf','dv','bold');
+  doc.setFont('dv','normal'); return doc;
+}
+const imgCache = {};
+function loadImg(src){ if(imgCache[src]) return imgCache[src]; return imgCache[src]=new Promise(ok=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>ok(i); i.onerror=()=>ok(null); i.src=src }) }
+async function thumbData(m, x){
+  try{
+    const c=document.createElement('canvas'); c.width=360; c.height=172; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,360,172);
+    if (m==='gym'){ const p=S.data.gym.sp[x.im]; if(!p) return null; const [s,col,row]=p; const im=await loadImg('sp/s'+s+'.jpg'); if(!im) return null; g.drawImage(im, col*480, row*230, 480, 230, 0, 0, 360, 172) }
+    else { if(!x.png) return null; const im=await loadImg(ROOT+x.png); if(!im) return null; const r=Math.min(360/im.width,172/im.height); g.drawImage(im,(360-im.width*r)/2,(172-im.height*r)/2,im.width*r,im.height*r) }
+    return c.toDataURL('image/jpeg', .82);
+  }catch(e){ return null }
+}
+function pdfHeader(doc, title, sub1, sub2, date){
+  const W=doc.internal.pageSize.getWidth();
+  doc.setFont('dv','bold'); doc.setFontSize(16); doc.setTextColor(31,41,55); doc.text(title, 10, 14);
+  doc.setFont('dv','normal'); doc.setFontSize(9.5); doc.setTextColor(60,60,60);
+  if(sub1) doc.text(sub1, 10, 20); if(sub2) doc.text(sub2, 10, 25);
+  doc.setFontSize(9); doc.setFont('dv','bold'); doc.text(date||'', W-10, 12, {align:'right'}); doc.setFont('dv','normal');
+  doc.text('Dr. İsmail Çiçek · UEFA Fitness Coach', W-10, 17, {align:'right'}); doc.setTextColor(228,87,46);
+  doc.textWithLink('Instagram: @powerforce_athletic', W-10-doc.getTextWidth('Instagram: @powerforce_athletic'), 22, {url:'https://instagram.com/powerforce_athletic'});
+  doc.setDrawColor(243,167,18); doc.setLineWidth(1); doc.line(10, 28, W-10, 28);
+}
+function pdfFooter(doc){
+  const n=doc.getNumberOfPages(), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight();
+  for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFont('dv','normal'); doc.setFontSize(7.5); doc.setTextColor(110,110,110);
+    doc.text('Dr. İsmail Çiçek · UEFA Fitness Coach', 10, H-6); doc.text(`${i}/${n}`, W/2, H-6, {align:'center'}); doc.text('Instagram: @powerforce_athletic', W-10, H-6, {align:'right'}) }
+}
+async function deliverPdf(doc, name){
+  const fn = (name||'Program').replace(/[\\/:*?"<>|]+/g,'-').slice(0,80) + '.pdf';
+  const blob = doc.output('blob'); const file = new File([blob], fn, {type:'application/pdf'});
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (mobile && navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file], title:fn}); return }catch(e){ if(e.name==='AbortError') return } }
+  const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=fn; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000); toast('PDF indirildi: '+fn);
+}
+async function printProgram(p, m){
+  toast('PDF hazırlanıyor…');
+  try{
+    await load(m); const doc = await pdfLib(); const L=ordered(p,m);
+    const thumbs = await Promise.all(L.map(o=>thumbData(m,o.x)));
+    pdfHeader(doc, p.name || (m==='gym'?'ANTRENMAN PROGRAMI':'SAHA ANTRENMAN PLANI'), [p.ath, p.md].filter(Boolean).join(' · '), p.note||'', trDate(p.date));
+    const body=[], meta=[]; let last='';
+    L.forEach((o,n)=>{ const g=groupName(m,o.x); if(g!==last){ body.push([{content:g, colSpan:11, styles:{fillColor:[221,243,241], textColor:[11,90,85], fontStyle:'bold'}}]); meta.push(null); last=g }
+      body.push([n+1, '', o.c, o.x.t + (o.x.en?'\n'+o.x.en:''), o.set||'', o.rep||'', o.load||'', o.tempo||'', o.rest||'', o.note||'', '']);
+      meta.push({img:thumbs[n], v:vidOf(m,o.x), a:animOf(m,o.x)?new URL(animOf(m,o.x),location.href).href:''}) });
+    doc.autoTable({ startY:32, margin:{left:10,right:10,bottom:12}, head:[['#','Görsel','Kod', m==='gym'?'Egzersiz':'Çalışma','Set', m==='gym'?'Tekrar':'Süre', m==='gym'?'Yük / RPE':'Şiddet', m==='gym'?'Tempo':'Alan','Dinlenme','Not','Video / '+(m==='gym'?'3D':'Hareketli')]],
+      body, styles:{font:'dv', fontSize:8.2, cellPadding:1.6, valign:'middle', textColor:[25,25,25], lineColor:[230,220,200], lineWidth:.1},
+      headStyles:{fillColor:[31,41,55], textColor:255, font:'dv', fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:7},1:{cellWidth:38,minCellHeight:19},2:{cellWidth:16,fontStyle:'bold'},3:{cellWidth:54},4:{cellWidth:12},5:{cellWidth:16},6:{cellWidth:26},7:{cellWidth:24},8:{cellWidth:18},9:{cellWidth:32},10:{cellWidth:25}},
+      didDrawCell: dc => { if(dc.section!=='body') return; const mt=meta[dc.row.index]; if(!mt) return;
+        if(dc.column.index===1 && mt.img){ doc.addImage(mt.img,'JPEG', dc.cell.x+1, dc.cell.y+1, 36, 17.2) }
+        if(dc.column.index===10){ doc.setFont('dv','bold'); doc.setFontSize(8.5); doc.setTextColor(192,0,0); let y=dc.cell.y+6;
+          if(mt.v){ doc.textWithLink('▶ Video', dc.cell.x+2, y, {url:mt.v}); y+=5.5 }
+          if(mt.a){ doc.setTextColor(228,87,46); doc.textWithLink('▶ '+(m==='gym'?'3D':'Hareketli'), dc.cell.x+2, y, {url:mt.a}) } } } });
+    pdfFooter(doc);
+    await deliverPdf(doc, (p.name||'Program')+' '+trDate(p.date));
+  }catch(e){ console.error(e); toast('PDF oluşturulamadı – internet bağlantını kontrol et'); }
+}
+async function printTest(t){
+  toast('PDF hazırlanıyor…');
+  try{
+    await loadTests(); const doc = await pdfLib(); const a=dbGet(t.athId)||{};
+    pdfHeader(doc, 'PERFORMANS TEST RAPORU', [a.ad, a.takim, a.mevki, a.dy&&('d. '+a.dy), a.boy&&(a.boy+' cm'), a.kilo&&(a.kilo+' kg')].filter(Boolean).join(' · '),
+      [t.pack, t.side&&('Sakat taraf: '+t.side), t.note].filter(Boolean).join(' · '), trDate(t.date));
+    const meta=[], body=(t.items||[]).map((it,i)=>{ const x=tByC(it.c); if(!x){ meta.push(null); return [i+1,it.c,'','','','','','','',''] } const e=evalTest(x,it,t.side); meta.push({v:x.v, col:e.col});
+      return [i+1, x.t+'\n'+x.k, x.u||'', it.r||'', it.l||'', it.v||'', e.res!=null?r1(e.res):'', e.lsi!=null?'%'+r1(e.lsi):'', e.rate||'', x.hd||'', ''] });
+    doc.autoTable({ startY:32, margin:{left:10,right:10,bottom:12}, head:[['#','Test','Birim','Sağ','Sol','Değer','Sonuç','LSI','Değerlendirme','Hedef / kriter','Video']], body,
+      styles:{font:'dv', fontSize:8.2, cellPadding:1.6, valign:'middle', textColor:[25,25,25], lineColor:[230,220,200], lineWidth:.1}, headStyles:{fillColor:[31,41,55], textColor:255, fontStyle:'bold'},
+      columnStyles:{0:{cellWidth:7},1:{cellWidth:63},2:{cellWidth:18},3:{cellWidth:13},4:{cellWidth:13},5:{cellWidth:15},6:{cellWidth:16,fontStyle:'bold'},7:{cellWidth:15},8:{cellWidth:27,fontStyle:'bold'},9:{cellWidth:60},10:{cellWidth:20}},
+      didParseCell: dc => { if(dc.section==='body' && dc.column.index===8){ const mt=meta[dc.row.index]; if(mt && /^#[0-9A-Fa-f]{6}$/.test(mt.col)){ const h=mt.col.replace('#',''); dc.cell.styles.textColor=[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)] } } },
+      didDrawCell: dc => { if(dc.section==='body' && dc.column.index===10){ const mt=meta[dc.row.index]; if(mt && mt.v){ doc.setFont('dv','bold'); doc.setFontSize(8.5); doc.setTextColor(192,0,0); doc.textWithLink('▶ Video', dc.cell.x+2, dc.cell.y+dc.cell.height/2+1.5, {url:mt.v}) } } } });
+    pdfFooter(doc);
+    await deliverPdf(doc, 'Test ' + (a.ad||'') + ' ' + trDate(t.date));
+  }catch(e){ console.error(e); toast('PDF oluşturulamadı – internet bağlantını kontrol et'); }
 }
 
 /* ---------- çizim + olaylar ---------- */
@@ -630,9 +716,10 @@ document.addEventListener('input', e=>{
 });
 document.addEventListener('change', e=>{
   const t=e.target, f=S.f[S.mode];
-  if (['grp','md','ph','cat'].includes(t.id)){ f[t.id]=t.value; S.limit=40; render() }
+  if (t.dataset.f){ f[t.dataset.f]=t.value; S.limit=40; render() }
   if (t.dataset.h){ const d=draft(); d[t.dataset.h]=t.value; saveDraft(d) }
   if (t.dataset.tf){ const d=tdraft(); d[t.dataset.tf]=t.value; setTdraft(d); if(t.dataset.tf==='side') render() }
+  if (t.dataset.athSel){ const d=draft(); if(t.value==='__other'){ S.athOther=1; d.athId='' } else { S.athOther=0; const a=dbGet(t.value); d.ath=a?a.ad:''; d.athId=a?a.id:'' } saveDraft(d); render() }
   if (t.id==='tc'){ S.tc=t.value; render() }
   if (t.id==='impFile' && t.files[0]){ importFile(t.files[0]); t.value='' }
   if (t.id==='tpack' && t.value){ const d=tdraft(); d.pack=t.value; (TD().packs[t.value]||[]).forEach(c=>{ if(!d.items.some(i=>i.c===c)) d.items.push({c}) }); setTdraft(d); render() }
@@ -647,6 +734,8 @@ document.addEventListener('click', async e=>{
   if (t.dataset.d){ return detail(t.dataset.d) }
   if (t.id==='cls'){ return $('#sheet').classList.remove('on') }
   if (t.id==='more'){ S.limit+=60; return render() }
+  if (t.id==='moreF'){ S.more=!S.more; return render() }
+  if (t.id==='clrF'){ const f=S.f[S.mode]; Object.keys(f).forEach(k=>f[k]=''); S.limit=40; return render() }
   if (t.dataset.mv||t.dataset.rm){ const i=+t.closest('.pi').dataset.i, d=draft();
     if (t.dataset.rm) d.items.splice(i,1); else { const j=i+(+t.dataset.mv); if(j<0||j>=d.items.length) return; [d.items[i],d.items[j]]=[d.items[j],d.items[i]] }
     saveDraft(d); return render() }
@@ -684,7 +773,7 @@ document.addEventListener('click', async e=>{
   if (t.id==='tSave') return saveTest();
   if (t.id==='tCancel'){ if(confirm('Test girişi iptal edilsin mi?')){ const a=(tdraft()||{}).athId; setTdraft(null); S.av=a?{p:'det',id:a}:{p:'list'}; render() } return }
   if (t.dataset.topen){ const x=dbGet(t.dataset.topen); setTdraft({...x}); S.av={p:'test'}; return render() }
-  if (t.dataset.tpdf){ await loadTests(); return printTest(dbGet(t.dataset.tpdf)) }
+  if (t.dataset.tpdf){ return printTest(dbGet(t.dataset.tpdf)) }
   if (t.dataset.tdel){ if(confirm('Bu test oturumu silinsin mi?')){ dbDel(t.dataset.tdel); render() } return }
 });
 document.addEventListener('keydown', e=>{ if(e.key==='Enter' && (e.target.id==='lgPass'||e.target.id==='lgMail')) doLogin('in') });
