@@ -115,6 +115,7 @@ footer.sig{text-align:center;font-size:11px;color:var(--mut);margin-top:20px}
  #print .ft{margin-top:8px;font-size:9.5px;color:#555;display:flex;justify-content:space-between}
  #print tr{page-break-inside:avoid}
 }
+.adm{border:0;background:#111827;color:#fff;border-radius:10px;padding:7px 9px;font-size:16px;cursor:pointer}
 .dot{display:inline-block;width:9px;height:9px;border-radius:5px;background:#bbb;vertical-align:middle}
 .dot.ok{background:#2E7D32}.dot.busy{background:var(--amber)}.dot.off{background:#C62828}
 .login{max-width:420px;margin:30px auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
@@ -132,7 +133,7 @@ body.nolog nav.bottom,body.nolog .mode{display:none}
 <header>
  <div class="brand">
   <div><h1 id="ttl">GYM DİZAYN</h1><small>Dr. İsmail Çiçek · UEFA Fitness Coach · @powerforce_athletic</small></div>
-  <div class="mode"><button data-m="gym" class="on">GYM</button><button data-m="saha">SAHA</button></div>
+  <div style="display:flex;gap:6px;align-items:center"><button id="admin" class="adm" hidden title="Lisans yönetimi">🔑</button><div class="mode"><button data-m="gym" class="on">GYM</button><button data-m="saha">SAHA</button></div></div>
  </div>
 </header>
 <main id="main"><div class="empty">Yükleniyor…</div></main>
@@ -610,6 +611,7 @@ async function render(){
   const body = S.view==='lib' ? libHTML() : S.view==='prog' ? progHTML() : S.view==='saved' ? savedHTML() : (S.av&&S.av.p==='admin') ? adminHTML() : athHTML();
   $('#main').innerHTML = body + `<datalist id="athl">${aths().map(a=>`<option value="${esc(a.ad)}">`).join('')}</datalist><footer class="sig">Dr. İsmail Çiçek · UEFA Fitness Coach · Instagram: @powerforce_athletic</footer>`;
   badge();
+  const ab=$('#admin'); if(ab) ab.hidden = !(S.lic && S.lic.yonetici);
 }
 async function loadTests(){
   if (S.data.tests) return; const r=await fetch('data/tests.json'); const d=await r.json(); d.by=Object.fromEntries(d.tests.map(t=>[t.c,t])); S.data.tests=d;
@@ -660,7 +662,7 @@ document.addEventListener('click', async e=>{
   if (t.dataset.back){ const v=S.av||{}; S.av = v.p==='admin' ? {p:'list'} : v.p==='test' ? {p:'det', id:(tdraft()||{}).athId} : v.p==='edit' && v.id ? {p:'det', id:v.id} : {p:'list'}; return render() }
   if (t.id==='imp'){ return $('#impFile').click() }
   if (t.id==='licRetry'){ await checkLic(); if(S.lic.gecerli) sync(); return render() }
-  if (t.id==='admin'){ S.av={p:'admin'}; S.adm=null; render(); return adminRefresh() }
+  if (t.id==='admin'){ S.view='ath'; S.av={p:'admin'}; S.adm=null; render(); return adminRefresh() }
   if (t.id==='lRef'){ return adminRefresh() }
   if (t.id==='lAdd'){ const em=($('#lmail').value||'').trim().toLowerCase(); if(!/^\S+@\S+\.\S+$/.test(em)) return toast('Geçerli e-posta yaz');
     const ay=+$('#lsure').value; const {error}=await sb.from('lisanslar').upsert({email:em, ad:$('#lad').value.trim(), bitis:addMonths(today(),ay), aktif:true, notlar:$('#lnot').value.trim()});
