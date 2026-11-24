@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Saha çalışması – hareketli çizim</title>
+<style>
+  :root { --bg:#0f1720; --card:#16202c; --tx:#f3f4f6; --mut:#9aa7b4; --acc:#f3a712 }
+  body { margin:0; background:var(--bg); color:var(--tx); font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
+  main { max-width:980px; margin:0 auto; padding:14px 16px 40px }
+  #sahne canvas { display:block; width:100%; border-radius:10px }
+  .sahne-bar { display:flex; gap:10px; align-items:center; margin-top:8px }
+  .sahne-bar input { flex:1 }
+  .sahne-bar button { background:var(--card); color:var(--tx); border:1px solid #2a3a4c; border-radius:8px; padding:6px 12px; font-weight:700; cursor:pointer }
+  .sahne-bar button.on { background:var(--acc); color:#16202c }
+  .leg { display:flex; flex-wrap:wrap; gap:14px; color:var(--mut); font-size:13px; margin:10px 2px }
+  .leg i { display:inline-block; width:22px; height:3px; vertical-align:middle; margin-right:6px }
+  footer { color:var(--mut); font-size:12px; margin-top:18px; text-align:center }
+  .msg { padding:40px 0; text-align:center; color:var(--mut) }
+</style>
+</head>
+<body>
+<main>
+  <div id="sahne"><div class="msg">Yükleniyor…</div></div>
+  <div class="leg"><span><i style="background:repeating-linear-gradient(90deg,#ffe128 0 6px,transparent 6px 10px)"></i>Pas</span><span><i style="background:#fff"></i>Koşu</span><span><i style="background:#ff9628"></i>Sprint</span><span><i style="background:#fff;height:2px;border-top:2px dotted #fff"></i>Top sürme</span><span><i style="background:#ff463c"></i>Şut</span><span>● Kırmızı: hücum · Mavi: savunma · Sarı: joker · Yeşil: kaleci</span></div>
+  <footer>Dr. İsmail Çiçek · UEFA Fitness Coach · Instagram: @powerforce_athletic</footer>
+</main>
+<script src="sahne.js"></script>
+<script>
+window.addEventListener('hashchange', () => location.reload());
+(async () => {
+  const code = decodeURIComponent((location.hash || location.search).replace(/^[#?](k=)?/, '')).trim().toUpperCase();
+  const el = document.getElementById('sahne');
+  if (!code) { el.innerHTML = '<div class="msg">Çalışma kodu yok.</div>'; return }
+  try {
+    const [cat, num] = code.split('-');
+    const r = await fetch('sahne/' + cat + '-' + Math.floor(parseInt(num, 10) / 50) + '.json'); const m = await r.json(); const sc = m[code];
+    if (!sc) throw 0;
+    document.title = code + ' – ' + sc.nm;
+    SAHNE.player(el, sc);
+  } catch (e) { el.innerHTML = '<div class="msg">Çalışma bulunamadı: ' + code + '</div>' }
+})();
+</script>
+</body>
+</html>

@@ -37,6 +37,8 @@ input[type=search],select,input[type=text],input[type=date],textarea{width:100%;
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
 .card .im{background:#f4efe6;aspect-ratio:480/230;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
 .card .im img{width:100%;height:100%;object-fit:contain}
+canvas[data-sc]{width:100%;height:auto;aspect-ratio:16/10;display:block;background:#368034;border-radius:8px}
+.pi .top canvas[data-sc]{width:110px}
 .sp{width:100%;aspect-ratio:480/230;background-repeat:no-repeat;background-color:#f4efe6}
 .card .im .sp{height:auto}
 .sheet .sp{border-radius:10px}
@@ -130,6 +132,7 @@ body.nolog nav.bottom,body.nolog .mode{display:none}
 @media (max-width:420px){.pi .row.tr{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.pi .row.tr input{font-size:14px}}
 </style>
 <script src="lib/supabase.min.js"></script>
+<script src="../Saha_Gorseller/sahne.js"></script>
 </head>
 <body>
 <header>
@@ -170,10 +173,19 @@ async function load(m){
   return S.data[m] = d;
 }
 const linkA = a => !a ? '' : (/^https?:/.test(a) ? a : ROOT + a);
-const imgOf = (m,x) => m==='gym' ? (x.im && S.data.gym.sp[x.im] ? 1 : '') : (x.png ? ROOT + x.png : '');
+const imgOf = (m,x) => m==='gym' ? (x.im && S.data.gym.sp[x.im] ? 1 : '') : (x.sc ? 1 : (x.png ? ROOT + x.png : ''));
+// v11: yeni saha çalışmaları sahne verisinden (Saha_Gorseller/sahne) tarayıcıda çizilir
+const SCN = {};
+async function scLoad(code){ const [c,n]=code.split('-'), f=c+'-'+Math.floor(parseInt(n,10)/50);
+  if(!SCN[f]) SCN[f]=fetch(ROOT+'Saha_Gorseller/sahne/'+f+'.json').then(r=>r.json()).catch(()=>({})); return (await SCN[f])[code] }
+const scIO = ('IntersectionObserver' in window) ? new IntersectionObserver(es=>es.forEach(e=>{ if(!e.isIntersecting) return; scIO.unobserve(e.target); scPaint(e.target) }),{rootMargin:'300px'}) : null;
+function scPaint(cv){ scLoad(cv.dataset.sc).then(sc=>{ if(sc && window.SAHNE) SAHNE.draw(cv.getContext('2d'), sc, 0, {arrows:true, header:false}) }) }
+function scScan(){ document.querySelectorAll('canvas[data-sc]:not([data-ok])').forEach(cv=>{ cv.dataset.ok=1; scIO ? scIO.observe(cv) : scPaint(cv) }) }
+new MutationObserver(()=>scScan()).observe(document.documentElement,{childList:true,subtree:true});
 function thumb(m,x,extra=''){
   if (m==='gym'){ const p=S.data.gym.sp[x.im]; if(!p) return ''; const [s,c,r,rows]=p;
     return `<div class="sp" ${extra} style="background-image:url(sp/s${s}.jpg);background-size:1000% ${rows*100}%;background-position:${c/9*100}% ${rows>1?r/(rows-1)*100:0}%"></div>` }
+  if (x.sc) return `<canvas data-sc="${x.c}" width="480" height="300" ${extra}></canvas>`;
   return x.png ? `<img loading="lazy" src="${ROOT+x.png}" ${extra} alt="">` : '';
 }
 const vidOf = (m,x) => m==='gym' ? (x.v||'') : (/^https?:/.test(x.a||'') ? x.a : '');
@@ -617,6 +629,7 @@ async function thumbData(m, x){
   try{
     const c=document.createElement('canvas'); c.width=360; c.height=172; const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,360,172);
     if (m==='gym'){ const p=S.data.gym.sp[x.im]; if(!p) return null; const [s,col,row]=p; const im=await loadImg('sp/s'+s+'.jpg'); if(!im) return null; g.drawImage(im, col*480, row*230, 480, 230, 0, 0, 360, 172) }
+    else if (x.sc){ const sc=await scLoad(x.c); if(!sc||!window.SAHNE) return null; const cv=document.createElement('canvas'); cv.width=480; cv.height=300; SAHNE.draw(cv.getContext('2d'), sc, 0, {arrows:true, header:false}); const r=Math.min(360/480,172/300); g.drawImage(cv,(360-480*r)/2,(172-300*r)/2,480*r,300*r) }
     else { if(!x.png) return null; const im=await loadImg(ROOT+x.png); if(!im) return null; const r=Math.min(360/im.width,172/im.height); g.drawImage(im,(360-im.width*r)/2,(172-im.height*r)/2,im.width*r,im.height*r) }
     return c.toDataURL('image/jpeg', .82);
   }catch(e){ return null }
@@ -786,7 +799,7 @@ $('#sheet').addEventListener('click', e=>{ if(e.target.id==='sheet') $('#sheet')
     await onUser(data.session ? data.session.user : null);
   }catch(err){ $('#main').innerHTML='<div class="empty">Yüklenemedi. İnternet bağlantını kontrol et.</div>'; console.error(err) }
 })();
-const APPV='8';
+const APPV='9';
 if ('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').then(r=>{ r.update(); setInterval(()=>r.update(), 30*60*1000) }).catch(()=>{});
   let reloaded=false; navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(reloaded) return; reloaded=true; location.reload() });
