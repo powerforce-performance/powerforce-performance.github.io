@@ -92,6 +92,14 @@ html,body{overflow-x:hidden}
 .sv .t{flex:1;min-width:0}
 .sv .t b{display:block}
 .sv .t span{font-size:12px;color:var(--mut)}
+.sv.lic{flex-wrap:wrap;align-items:flex-start}
+.sv.lic .t{flex:1 1 100%}
+.sv.lic .t > span{display:block;line-height:1.6;word-break:break-word;margin-top:2px}
+.sv.lic .t > span .tag{display:inline-block;color:#fff}
+.sv.lic .t > span b{display:inline}
+.sv.lic .t b{word-break:break-all}
+.lacts{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+.lacts .btn{flex:1 1 30%;padding:8px 6px;font-size:12px;white-space:nowrap}
 .tag{font-size:10px;font-weight:800;border-radius:5px;padding:1px 5px;color:#fff;background:var(--dark);margin-right:4px}
 .tag.s{background:#2e7d32}
 .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--dark);color:#fff;padding:9px 14px;border-radius:10px;z-index:60;opacity:0;transition:.25s;pointer-events:none;font-size:14px}
@@ -482,11 +490,17 @@ function licHTML(){
   const L=S.lic||{};
   if (L.gecerli && !licOK()) return `<div class="login"><h2>${PRODN[APPMODE]||'Bu uygulama'} lisansınız yok</h2><p>Hesabınız ${['gym','saha'].filter(k=>L[k]!==false).map(k=>'<b>'+PRODN[k]+'</b>').join(' ve ')} için tanımlı.</p>
    <p>${['gym','saha'].filter(k=>L[k]!==false).map(k=>`<a class="btn bvid" href="../${k}/">${PRODN[k]} uygulamasını aç</a>`).join(' ')}</p>
-   <p>Lisans için: <a href="https://instagram.com/powerforce_athletic" target="_blank" rel="noopener">Instagram: @powerforce_athletic</a></p>
+   <p>Lisans için: <a href="https://wa.me/905448323777" target="_blank" rel="noopener">WhatsApp: 0544 832 37 77</a> · <a href="https://instagram.com/powerforce_athletic" target="_blank" rel="noopener">Instagram: @powerforce_athletic</a></p>
    <div class="bar"><button class="btn bclear" id="logout">Çıkış yap</button></div></div>`;
+  if (!L.bitis) return `<div class="login"><h2>Hesabın açıldı ✓</h2>
+   <p>Uygulamayı kullanabilmen için lisansının (ya da <b>7 günlük ücretsiz denemenin</b>) tanımlanması gerekiyor.</p>
+   <p>Kayıt olduğun e-posta adresini WhatsApp'tan ilet:<br><b>${esc(S.user.email||'')}</b></p>
+   <p><a class="btn bsave" href="https://wa.me/905448323777?text=${encodeURIComponent('Merhaba, GYM DİZAYN kaydımı yaptım. E-postam: '+(S.user.email||''))}" target="_blank" rel="noopener">WhatsApp'tan e-postamı gönder</a></p>
+   <p class="en">Lisans tanımlandıktan sonra <b>Tekrar kontrol et</b>'e bas.</p>
+   <div class="bar"><button class="btn bvid" id="licRetry">Tekrar kontrol et</button><button class="btn bclear" id="logout">Çıkış yap</button></div></div>`;
   return `<div class="login"><h2>${L.bitis?'Lisans süreniz doldu':'Lisansınız yok'}</h2>
    <p>Bu uygulamayı kullanmak için geçerli bir lisans gerekiyor${L.bitis?` (son geçerlilik: ${esc(trDate(L.bitis))})`:''}.</p>
-   <p>Lisans almak ya da uzatmak için <b>Dr. İsmail Çiçek</b> ile iletişime geçin:<br><a href="https://instagram.com/powerforce_athletic" target="_blank" rel="noopener">Instagram: @powerforce_athletic</a></p>
+   <p>Lisans almak ya da uzatmak için <b>Dr. İsmail Çiçek</b> ile iletişime geçin:<br><a href="https://wa.me/905448323777" target="_blank" rel="noopener">WhatsApp: 0544 832 37 77</a><br><a href="https://instagram.com/powerforce_athletic" target="_blank" rel="noopener">Instagram: @powerforce_athletic</a></p>
    <p class="en">Giriş yapılan hesap: ${esc(S.user.email||'')}</p>
    <div class="bar"><button class="btn bvid" id="licRetry">Tekrar kontrol et</button><button class="btn bclear" id="logout">Çıkış yap</button></div></div>`;
 }
@@ -503,15 +517,15 @@ function adminHTML(){
    <p class="en">Buraya eklediğin e-posta ile hesap açan kişi, bitiş tarihine kadar seçtiğin uygulamayı kullanabilir. GYM linki: <b>${location.origin}/gym/</b> · SAHA linki: <b>${location.origin}/saha/</b></p>
    <div class="pform"><div class="full"><label class="l">Alıcının e-postası *</label><input type="text" id="lmail" inputmode="email" autocapitalize="off"></div>
     <div><label class="l">Ad soyad / kulüp</label><input type="text" id="lad"></div>
-    <div><label class="l">Süre</label><select id="lsure"><option value="1">1 ay</option><option value="3">3 ay</option><option value="6">6 ay</option><option value="12" selected>1 yıl</option><option value="24">2 yıl</option></select></div>
+    <div><label class="l">Süre</label><select id="lsure"><option value="d7">7 gün (ücretsiz deneme)</option><option value="1">1 ay</option><option value="3">3 ay</option><option value="6">6 ay</option><option value="12" selected>1 yıl</option><option value="24">2 yıl</option></select></div>
     <div class="full"><label class="l">Not (ödeme vb.)</label><input type="text" id="lnot"></div>
     <div class="full"><label class="l">Hangi uygulama?</label><label class="ck" style="border:0"><input type="checkbox" id="lgym" checked> GYM DİZAYN</label><label class="ck" style="border:0"><input type="checkbox" id="lsaha" checked> SAHA DİZAYN</label></div></div>
    <div class="bar"><button class="btn bsave" id="lAdd">+ Lisans ver</button></div>
    <div class="count"><span>${L.length} lisans · ${L.filter(x=>x.aktif&&x.bitis>=t).length} aktif</span><button class="btn bclear" id="lRef">↻ Yenile</button></div>
-   ${L.map(x=>{ const d=left(x.bitis), ok=x.aktif&&d>=0; return `<div class="sv"><div class="t"><b>${esc(x.email)}</b><span>${esc(x.ad||'')}${x.ad?' · ':''}${x.gym!==false?'<span class="tag">GYM</span>':''}${x.saha!==false?'<span class="tag s">SAHA</span>':''} bitiş ${esc(trDate(x.bitis))} · <b style="color:${ok?(d<30?'#EF6C00':'#2E7D32'):'#C62828'}">${!x.aktif?'kapalı':d<0?'süresi doldu':d+' gün kaldı'}</b>${x.notlar?' · '+esc(x.notlar):''}</span></div>
-     <button class="btn bsave" data-lext="${esc(x.email)}" data-n="12">+1 yıl</button><button class="btn bvid" data-lext="${esc(x.email)}" data-n="1">+1 ay</button>
+   ${L.map(x=>{ const d=left(x.bitis), ok=x.aktif&&d>=0; return `<div class="sv lic"><div class="t"><b>${esc(x.email)}</b><span>${esc(x.ad||'')}${x.ad?' · ':''}${x.gym!==false?'<span class="tag">GYM</span>':''}${x.saha!==false?'<span class="tag s">SAHA</span>':''} bitiş ${esc(trDate(x.bitis))} · <b style="color:${ok?(d<30?'#EF6C00':'#2E7D32'):'#C62828'}">${!x.aktif?'kapalı':d<0?'süresi doldu':d+' gün kaldı'}</b>${x.notlar?' · '+esc(x.notlar):''}</span></div>
+     <div class="lacts"><button class="btn bsave" data-lext="${esc(x.email)}" data-n="12">+1 yıl</button><button class="btn bsave" data-lext="${esc(x.email)}" data-n="6">+6 ay</button><button class="btn bvid" data-lext="${esc(x.email)}" data-n="1">+1 ay</button><button class="btn bvid" data-lext="${esc(x.email)}" data-n="d7">+7 gün</button>
      <button class="btn bclear" data-lprod="${esc(x.email)}" data-k="gym">${x.gym!==false?'GYM ✓':'GYM ✕'}</button><button class="btn bclear" data-lprod="${esc(x.email)}" data-k="saha">${x.saha!==false?'SAHA ✓':'SAHA ✕'}</button>
-     <button class="btn bclear" data-ltog="${esc(x.email)}">${x.aktif?'Kapat':'Aç'}</button><button class="btn bclear" data-ldel="${esc(x.email)}">Sil</button></div>` }).join('') || '<div class="empty">Henüz lisans yok.</div>'}`;
+     <button class="btn bclear" data-ltog="${esc(x.email)}">${x.aktif?'Kapat':'Aç'}</button><button class="btn bclear" data-ldel="${esc(x.email)}">Sil</button></div></div>` }).join('') || '<div class="empty">Henüz lisans yok.</div>'}`;
 }
 async function adminRefresh(){ S.adm = await adminLoad(); render() }
 
@@ -962,11 +976,11 @@ document.addEventListener('click', async e=>{
   if (t.id==='admin'){ S.view='ath'; S.av={p:'admin'}; S.adm=null; render(); return adminRefresh() }
   if (t.id==='lRef'){ return adminRefresh() }
   if (t.id==='lAdd'){ const em=($('#lmail').value||'').trim().toLowerCase(); if(!/^\S+@\S+\.\S+$/.test(em)) return toast('Geçerli e-posta yaz');
-    const ay=+$('#lsure').value; const g=$('#lgym').checked, sh=$('#lsaha').checked; if(!g&&!sh) return toast('En az bir uygulama seç');
-    const {error}=await sb.from('lisanslar').upsert({email:em, ad:$('#lad').value.trim(), bitis:addMonths(today(),ay), aktif:true, notlar:$('#lnot').value.trim(), gym:g, saha:sh});
+    const sv=$('#lsure').value, ay=+sv; const g=$('#lgym').checked, sh=$('#lsaha').checked; if(!g&&!sh) return toast('En az bir uygulama seç');
+    const {error}=await sb.from('lisanslar').upsert({email:em, ad:$('#lad').value.trim(), bitis: sv==='d7' ? addDays(today(),7) : addMonths(today(),ay), aktif:true, notlar:($('#lnot').value.trim() || (sv==='d7'?'7 gün ücretsiz deneme':'')), gym:g, saha:sh});
     if(error) return toast('Kaydedilemedi: '+error.message); toast('Lisans verildi ✓'); return adminRefresh() }
   if (t.dataset.lext){ const x=(S.adm||[]).find(r=>r.email===t.dataset.lext); const base = x.bitis>today()? x.bitis : today();
-    const {error}=await sb.from('lisanslar').update({bitis:addMonths(base,+t.dataset.n), aktif:true}).eq('email',x.email); if(error) return toast(error.message); toast('Uzatıldı ✓'); return adminRefresh() }
+    const n=t.dataset.n; const {error}=await sb.from('lisanslar').update({bitis: n==='d7' ? addDays(base,7) : addMonths(base,+n), aktif:true}).eq('email',x.email); if(error) return toast(error.message); toast('Uzatıldı ✓'); return adminRefresh() }
   if (t.dataset.lprod){ const x=(S.adm||[]).find(r=>r.email===t.dataset.lprod), k=t.dataset.k; const {error}=await sb.from('lisanslar').update({[k]: x[k]===false}).eq('email',x.email); if(error) return toast(error.message); return adminRefresh() }
   if (t.dataset.ltog){ const x=(S.adm||[]).find(r=>r.email===t.dataset.ltog); const {error}=await sb.from('lisanslar').update({aktif:!x.aktif}).eq('email',x.email); if(error) return toast(error.message); return adminRefresh() }
   if (t.dataset.ldel){ if(!await ask(t.dataset.ldel+' lisansı silinsin mi?')) return; const {error}=await sb.from('lisanslar').delete().eq('email',t.dataset.ldel); if(error) return toast(error.message); return adminRefresh() }
@@ -997,10 +1011,27 @@ $('#sheet').addEventListener('click', e=>{ if(e.target.id==='sheet') $('#sheet')
     await onUser(data.session ? data.session.user : null);
   }catch(err){ $('#main').innerHTML='<div class="empty">Yüklenemedi. İnternet bağlantını kontrol et.</div>'; console.error(err) }
 })();
-const APPV='11';
+const APPV='12';
+/* v12: otomatik güncelleme – uygulama açıkken de yeni sürümü yakalar */
 if ('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(r=>{ r.update(); setInterval(()=>r.update(), 30*60*1000) }).catch(()=>{});
-  let reloaded=false; navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(reloaded) return; reloaded=true; location.reload() });
+  let REG=null, newVer=false, reloaded=false;
+  const check = () => { if (REG) REG.update().catch(()=>{}); };
+  navigator.serviceWorker.register('sw.js').then(r=>{ REG=r; check(); setInterval(check, 10*60*1000) }).catch(()=>{});
+  document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible'){ if (newVer) doReload(); else check(); } });
+  window.addEventListener('focus', check); window.addEventListener('online', check);
+  function doReload(){ if (reloaded) return; reloaded=true; location.reload(); }
+  function busy(){ const a=document.activeElement; return a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && String(a.value||'').length>0; }
+  function banner(){
+    if (document.getElementById('upd')) return;
+    const d=document.createElement('div'); d.id='upd';
+    d.style.cssText='position:fixed;left:12px;right:12px;bottom:76px;z-index:9999;background:#16202c;color:#fff;border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.3);font:600 14px system-ui';
+    d.innerHTML='<span style="flex:1">Yeni sürüm hazır. Programın kayıtlı kalır.</span><button style="background:#f3a712;color:#16202c;border:0;border-radius:8px;padding:8px 14px;font-weight:800">Yenile</button>';
+    d.querySelector('button').onclick=doReload; document.body.appendChild(d);
+  }
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    newVer=true;
+    if (document.visibilityState!=='visible' || !busy()) doReload(); else banner();
+  });
 }
 
 </script>
