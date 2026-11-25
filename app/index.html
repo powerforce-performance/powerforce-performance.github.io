@@ -271,7 +271,7 @@ function cardHTML(x){
   const chips = m==='gym'
     ? [x.k, x.eq, x.sr, x.i].filter(Boolean).map(t=>`<span class="chip">${esc(t)}</span>`).join('') + Object.entries(x.rh||{}).filter(()=>S.f.gym.ph).slice(0,0).join('')
     : [x.s, x.n?x.n+' oyuncu':'', x.ar, x.d].filter(Boolean).map(t=>`<span class="chip">${esc(t)}</span>`).join('');
-  const body = (im ? thumb(m,x) + (m==='gym' && x.rp ? '<span class="rep">temsili görsel</span>' : '') : `<div class="noimg">${esc(x.nt || x.ru || 'SAHA · yalnızca video ▶')}</div>`);
+  const body = (im ? thumb(m,x) + (m==='gym' && x.rp ? '<span class="rep">temsili görsel</span>' : '') : `<div class="noimg">${esc(m==='gym' ? (x.nt || (x.ht ? 'NASIL YAPILIR:\n'+x.ht : 'Görsel yok · Nasıl yapılır için dokun')) : (x.nt || x.ru || 'SAHA · yalnızca video ▶'))}</div>`);
   const how = m==='gym' && x.ht && !vd ? `<div class="cardhow">${esc(x.ht.split('\n').slice(0,2).join(' '))}</div>` : '';
   return `<div class="card"><div class="im" data-d="${x.c}">${body}</div><div class="bd">
    <div class="nm"><span class="code">${esc(x.c)}</span>${esc(x.t)}</div>${x.en?`<div class="en">${esc(x.en)}</div>`:''}
@@ -997,7 +997,7 @@ $('#sheet').addEventListener('click', e=>{ if(e.target.id==='sheet') $('#sheet')
     await onUser(data.session ? data.session.user : null);
   }catch(err){ $('#main').innerHTML='<div class="empty">Yüklenemedi. İnternet bağlantını kontrol et.</div>'; console.error(err) }
 })();
-const APPV='10';
+const APPV='11';
 if ('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').then(r=>{ r.update(); setInterval(()=>r.update(), 30*60*1000) }).catch(()=>{});
   let reloaded=false; navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(reloaded) return; reloaded=true; location.reload() });
