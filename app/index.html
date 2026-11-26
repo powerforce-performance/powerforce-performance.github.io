@@ -154,6 +154,26 @@ body.nolog nav.bottom,body.nolog .mode{display:none}
 .res{padding:7px 2px;text-align:center;font-weight:800;font-size:13px;background:#f7f1e6;border-radius:8px}
 .pi .row.tr{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:420px){.pi .row.tr{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.pi .row.tr input{font-size:14px}}
+.gchips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;margin-bottom:4px;-webkit-overflow-scrolling:touch}
+.gchips.pos{flex-wrap:wrap;overflow:visible}
+.gchip{flex-shrink:0;border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink)}
+.gchip.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+.ghead h2{font-size:16px;margin:6px 2px 4px}.gt{color:var(--mut);font-size:13px;margin:0 2px 8px;white-space:pre-line}
+.gcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+.gh{font-weight:800;color:#fff;background:var(--teal);border-radius:8px;padding:6px 10px;margin:-2px -2px 8px;font-size:13px}
+.gh2{font-weight:800;margin:14px 2px 6px;font-size:14px}
+.gnote{background:#FFF8EA;border-radius:10px;padding:9px 11px;font-size:13px;margin-bottom:10px;white-space:pre-line}
+.gmodel{background:#DDF3F1;border-radius:10px;padding:9px 11px;font-size:13px;margin:10px 0;color:#0b3d3a}.gmodel b{display:block;margin-bottom:3px}
+.gtw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gtab{width:100%;border-collapse:collapse;font-size:12.5px;min-width:420px}.gtab th{background:#1F2937;color:#fff;text-align:left;padding:6px;font-size:12px}
+.gtab td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}.gtab.heat{min-width:640px}
+.gex{cursor:pointer;font-weight:700}.gex:hover{text-decoration:underline}
+.kv2{display:grid;grid-template-columns:76px 1fr;gap:6px 10px;font-size:13px}.kv2 b{color:var(--teal)}
+.gdays{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(170px,1fr);gap:8px;overflow-x:auto;padding-bottom:6px}
+.gday{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:12.5px}.gdh{color:#fff;font-weight:800;padding:6px 9px}
+.gdr{padding:6px 9px;border-top:1px solid var(--line);white-space:pre-line}.gdr small{display:block;color:var(--mut);font-size:11px}
+.lang{background:#111827;color:#fff;border:0;border-radius:8px;padding:6px 9px;font-weight:800;cursor:pointer;font-size:12px}
+body.saha nav.bottom button[data-v=rehber]{display:none}
 </style>
 <script src="lib/supabase.min.js"></script>
 <script src="../Saha_Gorseller/sahne.js"></script>
@@ -162,13 +182,14 @@ body.nolog nav.bottom,body.nolog .mode{display:none}
 <header>
  <div class="brand">
   <div><h1 id="ttl">GYM DİZAYN</h1><small>Dr. İsmail Çiçek · UEFA Fitness Coach · @powerforce_athletic</small></div>
-  <div style="display:flex;gap:6px;align-items:center"><button id="admin" class="adm" hidden title="Lisans yönetimi">🔑</button><div class="mode"><button data-m="gym" class="on">GYM</button><button data-m="saha">SAHA</button></div></div>
+  <div style="display:flex;gap:6px;align-items:center"><button id="admin" class="adm" hidden title="Lisans yönetimi">🔑</button><button id="lang" class="lang" title="Dil / Language">EN</button><div class="mode"><button data-m="gym" class="on">GYM</button><button data-m="saha">SAHA</button></div></div>
  </div>
 </header>
 <main id="main"><div class="empty">Yükleniyor…</div></main>
 <nav class="bottom">
  <button data-v="lib" class="on"><b>☰</b>Kütüphane</button>
  <button data-v="prog"><b>✎</b>Program<span class="badge" id="badge" hidden>0</span></button>
+ <button data-v="rehber"><b>📖</b>Rehber</button>
  <button data-v="saved"><b>★</b>Kayıtlı</button>
  <button data-v="tst"><b>⏱</b>Testler</button>
  <button data-v="ath"><b>👤</b>Sporcular</button>
@@ -178,6 +199,104 @@ body.nolog nav.bottom,body.nolog .mode{display:none}
 <div class="dlg" id="dlg"><div class="box"><p id="dlgT"></p><div class="bar"><button class="btn bsave" id="dlgOk">Evet</button><button class="btn bclear" id="dlgNo">Vazgeç</button></div></div></div>
 <div id="print"></div>
 <script>
+/* ---------- dil (TR / EN) ---------- */
+const LANG = (()=>{ try{ return localStorage.getItem('pf_lang')==='en' ? 'en' : 'tr' }catch(e){ return 'tr' } })();
+const I18N = {
+"Kütüphane":"Library","Program":"Program","Kayıtlı":"Saved","Testler":"Tests","Sporcular":"Athletes","Rehber":"Guides","Yükleniyor…":"Loading…",
+"+ Ekle":"+ Add","✓ Eklendi":"✓ Added","+ Programa ekle":"+ Add to program","+ Lisans ver":"+ Grant licence","+ Seçilenleri programa ekle":"+ Add selected to program","+ Yeni sporcu":"+ New athlete","+ Yeni test":"+ New test",
+"+1 ay":"+1 month","+1 yıl":"+1 year","+6 ay":"+6 months","+7 gün":"+7 days","1 ay":"1 month","1 yıl":"1 year","2 yıl":"2 years","3 ay":"3 months","6 ay":"6 months",
+"7 gün (ücretsiz deneme)":"7 days (free trial)","7 gün ücretsiz deneme":"7-day free trial","Ad soyad / kulüp":"Name / club","Ad soyad yaz":"Enter full name","Alt tür":"Sub-type",
+"Alıcının e-postası *":"Recipient e-mail *","Antrenman programı":"Training program","Antrenör notu":"Coach's note","Ara: SSG, rondo, sprint, ACL…":"Search: SSG, rondo, sprint, ACL…",
+"Ara: squat, nordic, KD-23, hamstring…":"Search: squat, nordic, KD-23, hamstring…","Aç":"Open","Boş satır sayısı (isimsiz)":"Number of blank rows","Bu kayıtlı program silinsin mi?":"Delete this saved program?",
+"Bu sporcuya bağlı program yok.":"No programs linked to this athlete.","Bu test oturumu silinsin mi?":"Delete this test session?","Bulutla eşit":"Synced with cloud","Değer":"Value","Değerl.":"Rating","Değerlendirme":"Rating",
+"Dominant ayak":"Dominant foot","Dominantlık":"Dominance","Dosya okunamadı":"File could not be read","Doğum yılı":"Year of birth","Düzenle":"Edit","E-posta":"E-mail","E-posta ve şifreni yazıp":"Enter your e-mail and password, then",
+"E-posta ya da şifre hatalı.":"Wrong e-mail or password.","E-posta yaz.":"Enter e-mail.","En az bir uygulama seç":"Select at least one app","Evet":"Yes","Eşitleniyor…":"Syncing…","Fotoğraf / logo ekle":"Add photo / logo",
+"Gelişim (testler)":"Progress (tests)","Geçerli e-posta yaz":"Enter a valid e-mail","Geçti":"Passed","Giriş":"Sign in","Giriş yap":"Sign in","Görsel":"Image",
+"Görsel temsilidir (benzer temel hareket). Uygulama için aşağıdaki adımları izle.":"Image is representative (similar base movement). Follow the steps below.","Hangi uygulama?":"Which app?","Hazır test paketi ekle":"Add test battery",
+"Henüz lisans yok.":"No licences yet.","Henüz sporcu yok.":"No athletes yet.","Henüz test kaydı yok.":"No test records yet.","Henüz test yok.":"No tests yet.","Her test için en iyi denemeyi yazın.":"Write the best trial for each test.",
+"Hesabın açıldı ✓":"Your account is open ✓","Hesap:":"Account:","Hiç değer girilmedi":"No values entered","Hiçbiri":"None","Kaldı":"Failed","Kaldır":"Remove","Kategori seç ya da arama yaz.":"Choose a category or type a search.",
+"Kaydedildi ✓":"Saved ✓","Kaydedilemedi:":"Could not save:","Kaydet":"Save","Kayıtlı program yok.":"No saved programs.","Kağıda yazılacak sporcular":"Athletes on the sheet","Kurallar / uygulama":"Rules / execution","Kütüphaneden":"From library",
+"Lisans almak ya da uzatmak için":"To get or extend a licence","Lisans için:":"For a licence:","Lisans süreniz doldu":"Your licence has expired","Lisans verildi ✓":"Licence granted ✓","Lisans yönetimi":"Licence management","Lisansınız yok":"You have no licence",
+"Liste alınamadı":"Could not load list","MD günü":"MD day","Mevki":"Position","Nasıl yapılır":"How to perform","Ne ölçer":"What it measures","Normlar":"Norms","Not":"Note","Not (ödeme vb.)":"Note (payment etc.)","Not (ör. A1-A2 süperset)":"Note (e.g. A1-A2 superset)",
+"Oyuncu sayısı":"Players","PDF hazırlanıyor…":"Preparing PDF…","PDF indirildi:":"PDF downloaded:","PDF oluşturulamadı":"PDF could not be created","PDF oluşturulamadı – internet bağlantını kontrol et":"PDF could not be created – check your connection",
+"PROGRAM ÖZETİ":"PROGRAM SUMMARY","Paket seç ya da aşağıdan test ekle.":"Choose a battery or add tests below.","Program adı":"Program name","Program boş":"Program is empty","Program boş.":"Program is empty.",
+"Program boşaldı – başlık bilgileri sıfırlandı":"Program emptied – header reset","Program ekranında":"On the Program screen","Program temizlendi":"Program cleared","Program temizlensin mi? (Kayıtlı programlar silinmez)":"Clear the program? (Saved programs are kept)",
+"Program özeti":"Program summary","Programa eklendi ✓":"Added to program ✓","Programdan çıkarıldı":"Removed from program","Programların, sporcuların ve testlerin tüm cihazlarında (telefon, bilgisayar, tablet) aynı görünür.":"Your programs, athletes and tests look the same on all your devices (phone, computer, tablet).",
+"Sahada / salonda elle doldurmak için yazdırılabilir test kağıdı: satırlarda sporcular, sütunlarda testler (sağ/sol ayrı).":"Printable test sheet to fill in by hand: athletes in rows, tests in columns (left/right separate).",
+"Sakat taraf (LSI için)":"Injured side (for LSI)","Sakatlık geçmişi / not":"Injury history / note","Sağ":"Right","Seçimi kaldır":"Clear selection","Sil":"Delete","Sol":"Left","Sonuç":"Result","Sonuç yok.":"No results.","Sporcu":"Athlete","Sporcu / Takım":"Athlete / Team",
+"Sporcu ara…":"Search athlete…","Sporcu kaydedildi ✓":"Athlete saved ✓","Sporcu seç":"Select athlete","Sporcu silinsin mi? (Testleri de silinir)":"Delete athlete? (Tests are deleted too)","Sporcu yok – boş satırlı kağıt çıkar.":"No athletes – a blank sheet will be produced.",
+"Sporcuyu düzenle":"Edit athlete","Sporcuyu sil":"Delete athlete","Süre":"Time","TEST KAĞIDI":"TEST SHEET","Takım":"Team","Takım / diğer (elle yaz)…":"Team / other (type)…","Takım / grup":"Team / group","Takım / grup başlığı":"Team / group title","Takım ya da kişi adı":"Team or person name",
+"Tarih":"Date","Tekrar kontrol et":"Check again","Temizle":"Clear","Test":"Test","Test ara…":"Search test…","Test bataryası":"Test battery","Test ekle":"Add test","Test eklenmedi":"No test added","Test formu":"Test form","Test girildikçe burada gelişim görünür.":"Progress appears here as tests are entered.",
+"Test girişi iptal edilsin mi?":"Cancel test entry?","Test kaydedildi ✓":"Test saved ✓","Test kayıtları":"Test records","Test kağıdı":"Test sheet","Test paketi (isteğe bağlı)":"Test battery (optional)","Test paketi *":"Test battery *","Tüm MD günleri":"All MD days","Tüm gruplar":"All groups",
+"Tüm kategoriler":"All categories","Tüm sporcular":"All athletes","Tüm testler":"All tests","Tümünü seç":"Select all","Uygun dönem":"Suitable period","Uzatıldı ✓":"Extended ✓","Vazgeç":"Cancel","WhatsApp'tan e-postamı gönder":"Send my e-mail via WhatsApp","Yeni hesap aç":"Create account",
+"Yeni misin? 7 gün ücretsiz dene.":"New here? Try free for 7 days.","Yeni sürüm hazır. Programın kayıtlı kalır.":"New version ready. Your program is kept.","Yenile":"Refresh","Yok / bilinmiyor":"None / unknown","Yön":"Side","Yük / RPE":"Load / RPE","Yük profili":"Load profile",
+"Yüklenemedi. İnternet bağlantını kontrol et.":"Could not load. Check your connection.","Zayıf":"Poor","egzersiz":"exercises","gün kaldı":"days left","hacim":"volume","kapalı":"off","temsili görsel":"representative image","toplam set":"total sets","toplam tekrar":"total reps","tüm cihazlarda":"on all devices",
+"yönetici":"admin","Çalışma":"Drill","Çevrimdışı – sonra eşitlenecek":"Offline – will sync later","Çok iyi":"Very good","Çıkış yap":"Sign out","Çıkış yapılsın mı?":"Sign out?","Ön libero":"Defensive midfielder","Önce":"Before","Önce e-postandaki onay linkine tıkla.":"Click the confirmation link in your e-mail first.",
+"Önce egzersiz seç":"Select exercises first","Önce test paketi seç":"Select a test battery first","Önerilen":"Suggested","Önerilen doz":"Suggested dose","Önerilen doz uygulandı ✓":"Suggested dose applied ✓","Önerilmez":"Not recommended","Üyelik adımları ›":"Membership steps ›","çalışma":"drills",
+"ör. KUVVET – POWER (MD-4)":"e.g. STRENGTH – POWER (MD-4)","İki ayak":"Both feet","İlerleme":"Progression","İyi":"Good","Şiddet":"Intensity","Şifre":"Password","Şifre en az 6 karakter olmalı.":"Password must be at least 6 characters.","Şifre yenileme linki e-postana gönderildi.":"Password reset link sent to your e-mail.",
+"Şifremi unuttum":"Forgot password","Şu an hazırladığın program bu kayıtla değiştirilecek. Devam edilsin mi?":"Your current program will be replaced by this one. Continue?","— paket seç —":"— choose battery —","— sporcu seç —":"— choose athlete —","‹ Geri":"‹ Back","‹ Sporcular":"‹ Athletes",
+"↻ Yenile":"↻ Refresh","▶ Test girişine başla":"▶ Start test entry","▶ Video":"▶ Video","▶ Videoyu izle":"▶ Watch video","▾ Diğer filtreler":"▾ More filters","▴ Daha az filtre":"▴ Fewer filters","✎ Bu programı düzenle (mevcutun yerine)":"✎ Edit this program (replaces current)","✎ Program yaz":"✎ Write program",
+"✕ Filtreleri temizle":"✕ Clear filters","➦ Paylaş":"➦ Share","💾 Kaydet":"💾 Save","💾 Testi kaydet":"💾 Save test","📄 Boş test formu (PDF)":"📄 Blank test form (PDF)","📄 PDF":"📄 PDF","📄 Test kağıdını oluştur (PDF)":"📄 Create test sheet (PDF)","📥 Excel'den aktar (dosya seç)":"📥 Import from Excel (choose file)",
+"📷 Fotoğraf ekle / değiştir":"📷 Add / change photo","🔑 Lisans yönetimi":"🔑 Licence management","Alan":"Area","Alt grup":"Sub-group","Ana kategori":"Main category","Antrenman hedefi":"Training goal","Bek":"Full-back","Birim":"Unit","Boy":"Height","Boy (cm)":"Height (cm)","Deneme":"Trial","Dinlenme":"Rest",
+"Doz":"Dose","Dönem":"Period","Egzersiz":"Exercise","Ekipman":"Equipment","Elit":"Elite","Fiziksel hedef":"Physical goal","Fokus":"Focus","Forvet":"Striker","Fotoğrafı değiştir":"Change photo","Hareket paterni":"Movement pattern","Hareketli":"Animated","Hedef":"Goal","Hedef / kriter":"Target / criterion",
+"Hedef kas":"Target muscle","Hedef kaslar":"Target muscles","Hepsi":"All","Kaleci":"Goalkeeper","Kanat":"Winger","Kapat":"Close","Kategori":"Category","Kaynak":"Source","Kilo":"Weight","Kilo (kg)":"Weight (kg)","Kod":"Code","Nasıl yapılır (kısa)":"How to perform (short)","Orta":"Moderate","Orta saha":"Midfielder",
+"Oyuncu":"Players","Patern":"Pattern","Rehab / RTP fazı (hepsi)":"Rehab / RTP phase (all)","Set":"Sets","Set x Tekrar":"Sets x Reps","Seviye":"Level","Stoper":"Centre-back","Teknik–taktik":"Technical–tactical","Tekrar":"Reps","Tempo":"Tempo","Uni / Bilateral":"Uni / Bilateral","Uni/Bilateral":"Uni/Bilateral",
+"Video":"Video","Yeni sporcu":"New athlete","Yoğunluk":"Intensity","m²/oyuncu":"m²/player","Daha fazla göster":"Show more","ANTRENMAN PROGRAMI":"TRAINING PROGRAM","SAHA ANTRENMAN PLANI":"FIELD TRAINING PLAN","PERFORMANS TEST RAPORU":"PERFORMANCE TEST REPORT","Video / 3D":"Video / 3D","Video / Hareketli":"Video / Animated",
+"NASIL YAPILIR:":"HOW TO PERFORM:","Görsel yok · Nasıl yapılır için dokun":"No image · tap for how-to","SAHA · yalnızca video ▶":"FIELD · video only ▶","Testi kaydet":"Save test","sürüm":"version","—":"—",
+"Hazır programlar":"Ready programs","Programa yükle":"Load into program","Programa yüklendi ✓":"Loaded into program ✓","Mevki seç":"Choose position","Seans":"Session","Sıra":"Order","Notlar":"Notes","Ne zaman":"When","Nedir":"What","Nasıl":"How","Gün kartları":"Day cards",
+"Hangi egzersiz grubu hangi gün?":"Which exercise group on which day?","ANA = günün ana işi · UYGUN = yapılabilir · AZ = düşük doz · YOK = yapılmaz":"MAIN = main work of the day · OK = can be done · LOW = low dose · NO = not done","Haftanın planı":"Weekly plan","Gün":"Day","Saha":"Field","Gym":"Gym",
+"Program taslağında egzersiz var. Bu seans yerine yüklensin mi?":"Your program draft has exercises. Replace it with this session?","Dil":"Language","📷 Fotoğraf / logo ekle": "📷 Add photo / logo", "Fotoğraf / logo ekle": "Add photo / logo", "Sporcu seç, hazır paket seç ve değerleri gir. Sonuç, LSI ve değerlendirme otomatik hesaplanır; kayıt": "Select the athlete and battery, then enter values. Result, LSI and rating are calculated automatically; the record goes to", "na ve sporcunun gelişim grafiğine düşer.": "and to the athlete's progress chart.", "sekmesinden giriş yap.": "tab to enter.", "ile ekle.": "to add one.", "Test oturumları": "Test sessions", "Aerobik koşu / Tempo": "Aerobic running / Tempo", "Bitiricilik / Şut": "Finishing / Shooting", "Dar alan oyunu (SSG)": "Small-sided game (SSG)", "Entegre devre (fiziksel + teknik + bitiriş)": "Integrated circuit (physical + technical + finishing)", "Geniş alan oyunu (LSG)": "Large-sided game (LSG)", "Geçiş oyunu": "Transition game", "HIIT (yüksek şiddetli aralıklı koşu)": "HIIT (high-intensity interval running)", "Isınma": "Warm-up", "Orta alan oyunu (MSG)": "Medium-sided game (MSG)", "Pas drili": "Passing drill", "Rondo": "Rondo", "Saha testi": "Field test", "Sahaya dönüş (sakatlık sonrası)": "Return to play (after injury)", "Sürat": "Speed", "Sürat dayanıklılığı / Tekrarlı sprint": "Speed endurance / Repeated sprint", "Taktik faz çalışması": "Tactical phase work", "Telafi (top-up, oynamayanlar)": "Top-up (non-starters)", "Topa sahip olma / Pozisyon oyunu": "Possession / Positional game", "Toparlanma": "Recovery", "Çeviklik / Yön değiştirme": "Agility / Change of direction","SPORCULAR":"ATHLETES","TESTLER":"TESTS","REHBER":"GUIDES","⬇ Programa yükle":"⬇ Load into program","Haftanın planı":"Weekly plan",
+"Hamstring":"Hamstring","Kasık":"Groin","Ayak bileği":"Ankle","Baldır":"Calf","Aşil":"Achilles",
+};
+const I18R = [
+ [/^(\d+) sonuç · (\d+) oturum$/, '$1 results · $2 sessions'], [/^Tüm kategoriler \((\d+) test\)$/, 'All categories ($1 tests)'], [/^Hazır test paketleri \((\d+)\)$/, 'Test batteries ($1)'], [/^Test oturumları \((\d+)\)$/, 'Test sessions ($1)'],
+ [/^⟳ (MD[+-]\d) için önerilen dozu tüm egzersizlere uygula$/, '⟳ Apply the suggested $1 dose to all exercises'], [/^⚠ (MD[+-]\d) için önerilmez · genel doz:$/, '⚠ Not recommended on $1 · general dose:'],
+ [/^(\d+) egzersiz$/, '$1 exercises'], [/^(\d+) çalışma$/, '$1 drills'], [/^Program: (\d+)$/, 'Program: $1'], [/^(\d+) kayıtlı program$/, '$1 saved programs'], [/^Daha fazla göster \((\d+)\)$/, 'Show more ($1)'],
+ [/^Önerilen doz (MD[+-]\d)$/, 'Suggested dose $1'], [/^(\d+) oyuncu$/, '$1 players'], [/^(\d+) gün kaldı$/, '$1 days left'], [/^Rehab (\w+)$/, 'Rehab $1'],
+];
+const I18S = [  // parça parça (PDF satırları vb.)
+ ['Egzersiz sayısı:', 'Exercises:'], ['Toplam set:', 'Total sets:'], ['Toplam tekrar:', 'Total reps:'], ['Hacim:', 'Volume:'], ['Şiddet:', 'Intensity:'], ['Bölümler:', 'Sections:'], ['Çalıştırılan kas grupları (set):', 'Muscle groups worked (sets):'],
+ ['ort.', 'avg.'], ['Çalışan kaslar (set):', 'Muscles worked (sets):'], ['— kutulara kendi değerini yazabilirsin', '— you can type your own values in the boxes'], ['Önerilen (', 'Suggested ('], ['Önerilen:', 'Suggested:'], ['Sakat taraf:', 'Injured side:'], ['sürüm ', 'version '], ['Sayfa', 'Page'],
+];
+function trs(s){
+  if (LANG!=='en' || typeof s!=='string') return s;
+  const k=s.trim(); if(!k) return s;
+  let v=I18N[k];
+  if (v==null){ for(const [re,r] of I18R){ if(re.test(k)){ v=k.replace(re,r); break } } }
+  if (v==null){ let o=k, ch=false; for(const [a,b] of I18S){ if(o.includes(a)){ o=o.split(a).join(b); ch=true } } if(ch) v=o }
+  return v==null ? s : s.replace(k, v);
+}
+function trNode(root){
+  if (LANG!=='en' || !root) return;
+  if (root.nodeType===3){ const v=trs(root.nodeValue); if(v!==root.nodeValue) root.nodeValue=v; return }
+  if (root.nodeType!==1) return;
+  if (root.closest && root.closest('[data-notr]')) return;
+  ['placeholder','title'].forEach(a=>{ if(root.hasAttribute && root.hasAttribute(a)){ const v=trs(root.getAttribute(a)); if(v!==root.getAttribute(a)) root.setAttribute(a,v) } });
+  if (root.tagName==='INPUT' && (root.type==='button'||root.type==='submit')) root.value=trs(root.value);
+  const w=document.createTreeWalker(root, NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT); let n;
+  while((n=w.nextNode())){
+    if (n.nodeType===3){ if(n.parentElement && n.parentElement.closest('[data-notr],textarea,script,style')) continue; const v=trs(n.nodeValue); if(v!==n.nodeValue) n.nodeValue=v }
+    else ['placeholder','title'].forEach(a=>{ if(n.hasAttribute(a)){ const v=trs(n.getAttribute(a)); if(v!==n.getAttribute(a)) n.setAttribute(a,v) } });
+  }
+}
+if (LANG==='en'){
+  document.documentElement.lang='en';
+  new MutationObserver(ms=>{ for(const m of ms) for(const n of m.addedNodes) trNode(n) }).observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('DOMContentLoaded',()=>trNode(document.body));
+  trNode(document.body);
+}
+function setLang(l){ try{ localStorage.setItem('pf_lang', l) }catch(e){} location.reload() }
+function pdfI18n(doc){
+  if (LANG!=='en') return doc;
+  const t0=doc.text.bind(doc); doc.text=(s,...a)=>t0(Array.isArray(s)?s.map(trs):trs(s),...a);
+  const tl=doc.textWithLink.bind(doc); doc.textWithLink=(s,...a)=>tl(trs(s),...a);
+  const sp=doc.splitTextToSize.bind(doc); doc.splitTextToSize=(s,...a)=>sp(typeof s==='string'?trs(s):s,...a);
+  const at=doc.autoTable.bind(doc);
+  doc.autoTable=o=>{ const f=r=>Array.isArray(r)?r.map(c=>typeof c==='string'?trs(c):(c&&typeof c==='object'&&typeof c.content==='string'?{...c,content:trs(c.content)}:c)):r;
+    if(o.head) o.head=o.head.map(f); if(o.body) o.body=o.body.map(f); return at(o) };
+  return doc;
+}
+
 const APPMODE = /\/gym\//.test(location.pathname) ? 'gym' : /\/saha\//.test(location.pathname) ? 'saha' : 'all';
 const ROOT = '../';           // animasyonlar sitenin kökünde (Gorseller/, Saha_Gorseller/)
 const MDS = ["MD+1","MD+2","MD-4","MD-3","MD-2","MD-1"];
@@ -197,7 +316,10 @@ const norm = s => String(s||'').toLocaleLowerCase('tr').normalize('NFD').replace
 async function load(m){
   if (S.data[m]) return S.data[m];
   const r = await fetch('data/'+m+'.json'); const d = await r.json();
-  d.items.forEach(x => { x._s = norm([x.c,x.t,x.en,x.k,x.p,x.eq,x.m,x.s,x.ph].join(' ')) });
+  if (LANG==='en' && m==='gym'){ try{ const E=await (await fetch('data/gym_en.json')).json();
+    d.items.forEach(x=>{ const e=E.items[x.c]; if(!e) return; x.tr_=x.t; Object.assign(x, e); x.en='' });
+    Object.assign(d.groups, E.groups); Object.entries(E.phl||{}).forEach(([k,v])=>{ I18N[k]=v }) }catch(e){ console.warn('EN', e) } }
+  d.items.forEach(x => { x._s = norm([x.c,x.t,x.en,x.tr_,x.k,x.p,x.eq,x.m,x.s,x.ph].join(' ')) });
   d.by = Object.fromEntries(d.items.map(x=>[x.c,x]));
   return S.data[m] = d;
 }
@@ -794,7 +916,7 @@ async function pdfLib(){
   const doc = new window.jspdf.jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
   doc.addFileToVFS('dv.ttf', S.fonts.r); doc.addFont('dv.ttf','dv','normal');
   doc.addFileToVFS('dvb.ttf', S.fonts.b); doc.addFont('dvb.ttf','dv','bold');
-  doc.setFont('dv','normal'); return doc;
+  doc.setFont('dv','normal'); return pdfI18n(doc);
 }
 const imgCache = {};
 function loadImg(src){ if(imgCache[src]) return imgCache[src]; return imgCache[src]=new Promise(ok=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>ok(i); i.onerror=()=>ok(null); i.src=src }) }
@@ -882,24 +1004,77 @@ async function printTest(t){
   }catch(e){ console.error(e); toast('PDF oluşturulamadı – internet bağlantını kontrol et'); }
 }
 
+/* ---------- rehber (hazır programlar, maç haftası, ısınma, metotlar, mevkiye özel) ---------- */
+async function loadGuides(){
+  if (S.data.guides) return S.data.guides;
+  const r = await fetch(LANG==='en' ? 'data/guides_en.json' : 'data/guides.json'); S.data.guides = await r.json(); return S.data.guides;
+}
+const HEATC = {ANA:'#0B5A55', MAIN:'#0B5A55', UYGUN:'#5AA469', OK:'#5AA469', AZ:'#E9C46A', LOW:'#E9C46A', YOK:'#E5E1D8', NO:'#E5E1D8'};
+const DAYC = {"MD+1":"#5B7DB1","MD+2":"#8C8C8C","MD-4":"#C0504D","MD-3":"#D9822B","MD-2":"#C9A227","MD-1":"#6FA85A","MD (maç)":"#1F2937","MD (match)":"#1F2937"};
+function gName(c){ const x=(S.data.gym.by||{})[c]; return x ? x.t : c }
+function gSession(it, si, ii){
+  const rows = it.rows.map(r=>`<tr><td><b>${esc(r.o)}</b></td><td><span class="gex" data-d="${esc(r.c)}"><span class="code">${esc(r.c)}</span>${esc(gName(r.c))}</span>${r.n?`<div class="en">${esc(r.n)}</div>`:''}</td><td>${esc(r.s)} x ${esc(r.r)}</td><td>${esc(r.l)}</td><td>${esc(r.rest)}</td></tr>`).join('');
+  return `<div class="gcard"><div class="gh">${esc(it.title)}</div>${it.text?`<div class="gt">${esc(it.text)}</div>`:''}
+   <div class="gtw"><table class="gtab"><thead><tr><th>Sıra</th><th>Egzersiz</th><th>Set x Tekrar</th><th>Yük / RPE</th><th>Dinlenme</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="acts"><button class="btn badd" data-gload="${si}:${ii}">⬇ Programa yükle</button></div></div>`;
+}
+function gItem(it, si, ii){
+  if (it.t==='note') return `<div class="gnote">${esc(it.text)}</div>`;
+  if (it.t==='model') return `<div class="gmodel"><b>${esc(it.title)}</b><div>${esc(it.text)}</div></div>`;
+  if (it.t==='method') return `<div class="gcard"><div class="gh">${esc(it.title)}</div><div class="kv2"><b>Nedir</b><div>${esc(it.what)}</div><b>Nasıl</b><div>${esc(it.how)}</div><b>Ne zaman</b><div>${esc(it.when)}</div></div></div>`;
+  if (it.t==='week') return `<div class="gcard"><div class="gh">Haftanın planı</div><div class="gtw"><table class="gtab"><thead><tr><th>Gün</th><th>MD</th><th>Saha</th><th>Gym</th><th>Süre</th></tr></thead><tbody>${it.rows.map(r=>`<tr><td>${esc(r.day)}</td><td><b>${esc(r.md)}</b></td><td>${esc(r.field)}</td><td>${esc(r.gym)}</td><td>${esc(r.dur)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  if (it.t==='days') return `<div class="gh2">Gün kartları</div><div class="gdays">${it.days.map((d,j)=>`<div class="gday"><div class="gdh" style="background:${DAYC[d]||'#1F2937'}">${esc(d)}</div>${it.rows.map(r=>`<div class="gdr"><small>${esc(r.lab)}</small><div>${esc(r.vals[j])}</div></div>`).join('')}</div>`).join('')}</div>`;
+  if (it.t==='heat') return `<div class="gh2">Hangi egzersiz grubu hangi gün?</div><div class="en" style="margin:0 2px 6px">ANA = günün ana işi · UYGUN = yapılabilir · AZ = düşük doz · YOK = yapılmaz</div>
+    <div class="gtw"><table class="gtab heat"><thead><tr>${it.head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${it.rows.map(r=>`<tr><td><b>${esc(r.lab)}</b></td>${r.vals.map(v=>`<td style="background:${HEATC[v]||'#eee'};color:${/ANA|MAIN|UYGUN|OK/.test(v)?'#fff':'#333'};text-align:center;font-weight:700">${esc(v)}</td>`).join('')}<td class="en">${esc(r.note||'')}</td></tr>`).join('')}</tbody></table></div>`;
+  if (it.t==='pos') return `<div class="gmodel"><b>${esc(it.tr)}</b><div>${esc(it.text)}</div></div>`;
+  if (it.t==='session') return gSession(it, si, ii);
+  return '';
+}
+function guidesHTML(){
+  const G=S.data.guides; if(!G) return '<div class="empty">Yükleniyor…</div>';
+  const si = Math.max(0, G.sheets.findIndex(s=>s.k===S.gk)); const sh=G.sheets[si]; S.gk=sh.k;
+  const chips = `<div class="gchips">${G.sheets.map(s=>`<button class="gchip ${s.k===sh.k?'on':''}" data-gs="${s.k}">${esc(s.tr)}</button>`).join('')}</div>`;
+  let items = sh.items.map((it,ii)=>[it,ii]);
+  let posBar = '';
+  if (sh.k==='pos'){
+    const P = sh.items.filter(i=>i.t==='pos'); if(!P.some(p=>p.k===S.gp)) S.gp=P[0].k;
+    posBar = `<div class="gchips pos">${P.map(p=>`<button class="gchip ${p.k===S.gp?'on':''}" data-gp="${p.k}">${esc(p.tr)}</button>`).join('')}</div>`;
+    items = items.filter(([it])=>it.t==='note' || (it.t==='pos' && it.k===S.gp) || (it.t==='session' && it.pos===S.gp));
+  }
+  return `${chips}<div class="ghead"><h2>${esc(sh.title)}</h2>${sh.sub?`<div class="gt">${esc(sh.sub)}</div>`:''}</div>${posBar}${items.map(([it,ii])=>gItem(it,si,ii)).join('')}`;
+}
+async function loadSession(si, ii){
+  const it = S.data.guides.sheets[si].items[ii]; if(!it||!it.rows) return;
+  const by = S.data.gym.by; let d = draft('gym');
+  if (d.items.length && !(await ask('Program taslağında egzersiz var. Bu seans yerine yüklensin mi?'))) return;
+  d = emptyDraft(); d.name = it.title;
+  const md = (it.md || (it.title.match(/MD[+-]\d/)||[])[0] || ''); if (MDS.includes(md)) d.md = md;
+  it.rows.forEach(r=>{ const x=by[r.c]; if(!x) return; d.items.push({c:r.c, set:r.s, rep:r.r, load:r.l, tempo:x.tp||'', rest:r.rest, note:[r.o, r.n].filter(Boolean).join(' · ')}) });
+  saveDraft(d, 'gym'); S.mode='gym'; S.view='prog'; toast('Programa yüklendi ✓'); await render(); window.scrollTo(0,0);
+}
+
 /* ---------- çizim + olaylar ---------- */
 async function render(){
   document.body.classList.toggle('nolog', !S.user);
   if (!S.user){ $('#main').innerHTML = loginHTML(); return }
   if (sb && S.user.id!=='local' && !licOK()){ document.body.classList.add('nolog'); $('#main').innerHTML = licHTML(); return }
   const MA=modesAllowed(); if(!MA.includes(S.mode)) S.mode=MA[0]; $('.mode').style.display = MA.length>1 ? '' : 'none';
-  const m=S.mode; await load(m); if(S.view==='ath'||S.view==='tst') await loadTests();
+  if(S.view==='rehber' && S.mode!=='gym') S.view='lib';
+  const m=S.mode; await load(m); if(S.view==='ath'||S.view==='tst') await loadTests(); if(S.view==='rehber'){ if(!S.data.gym) await load('gym'); await loadGuides() }
+  document.body.classList.toggle('saha', m==='saha'); const lb=$('#lang'); if(lb) lb.textContent = LANG==='en' ? 'TR' : 'EN';
   document.title = APPMODE==='saha' ? 'SAHA DİZAYN' : APPMODE==='gym' ? 'GYM DİZAYN' : 'GYM / SAHA DİZAYN';
-  $('#ttl').textContent = S.view==='ath' ? 'SPORCULAR' : S.view==='tst' ? 'TESTLER' : (m==='gym' ? 'GYM DİZAYN' : 'SAHA DİZAYN');
+  $('#ttl').textContent = S.view==='ath' ? 'SPORCULAR' : S.view==='tst' ? 'TESTLER' : S.view==='rehber' ? 'REHBER' : (m==='gym' ? 'GYM DİZAYN' : 'SAHA DİZAYN');
   document.querySelectorAll('.mode button').forEach(b=>b.classList.toggle('on', b.dataset.m===m));
   document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.toggle('on', b.dataset.v===S.view));
-  const body = S.view==='lib' ? libHTML() : S.view==='prog' ? progHTML() : S.view==='saved' ? savedHTML() : S.view==='tst' ? tstHTML() : (S.av&&S.av.p==='admin') ? adminHTML() : athHTML();
+  const body = S.view==='rehber' ? guidesHTML() : S.view==='lib' ? libHTML() : S.view==='prog' ? progHTML() : S.view==='saved' ? savedHTML() : S.view==='tst' ? tstHTML() : (S.av&&S.av.p==='admin') ? adminHTML() : athHTML();
   $('#main').innerHTML = body + `<datalist id="athl">${aths().map(a=>`<option value="${esc(a.ad)}">`).join('')}</datalist><footer class="sig">Dr. İsmail Çiçek · UEFA Fitness Coach · Instagram: @powerforce_athletic<br>sürüm ${APPV}</footer>`;
   badge();
   const ab=$('#admin'); if(ab) ab.hidden = !(S.lic && S.lic.yonetici);
 }
 async function loadTests(){
-  if (S.data.tests) return; const r=await fetch('data/tests.json'); const d=await r.json(); d.by=Object.fromEntries(d.tests.map(t=>[t.c,t])); S.data.tests=d;
+  if (S.data.tests) return; const r=await fetch('data/tests.json'); const d=await r.json();
+  if (LANG==='en'){ try{ const E=await (await fetch('data/tests_en.json')).json(); d.tests.forEach(t=>{ if(E.t[t.c]) t.t=E.t[t.c] }); Object.assign(I18N, E.k, E.p) }catch(e){} }
+  d.by=Object.fromEntries(d.tests.map(t=>[t.c,t])); S.data.tests=d;
 }
 let qT;
 document.addEventListener('input', e=>{
@@ -929,6 +1104,10 @@ document.addEventListener('change', async e=>{
 });
 document.addEventListener('click', async e=>{
   const t=e.target.closest('button,[data-d],[data-ath],[data-tinfo2],[data-topen2]'); if(!t) return;
+  if (t.id==='lang') return setLang(LANG==='en'?'tr':'en');
+  if (t.dataset.gs){ S.gk=t.dataset.gs; await render(); window.scrollTo(0,0); return }
+  if (t.dataset.gp){ S.gp=t.dataset.gp; return render() }
+  if (t.dataset.gload){ const [a,b]=t.dataset.gload.split(':').map(Number); return loadSession(a,b) }
   if (t.id==='lgIn') return doLogin('in'); if (t.id==='lgUp') return doLogin('up'); if (t.id==='lgFg') return doLogin('fg');
   if (t.id==='logout'){ if(await ask('Çıkış yapılsın mı?')){ await sb.auth.signOut(); DB.s={recs:{},last:null,uid:null}; dbSave(); onUser(null) } return }
   if (t.dataset.m){ if(S.view==='lib') S.scroll[S.mode]=window.scrollY; S.mode=t.dataset.m; if(S.view==='ath'||S.view==='tst') S.view='lib'; await render(); if(S.view==='lib') window.scrollTo(0,S.scroll[S.mode]||0); return }
@@ -1012,7 +1191,7 @@ $('#sheet').addEventListener('click', e=>{ if(e.target.id==='sheet') $('#sheet')
     await onUser(data.session ? data.session.user : null);
   }catch(err){ $('#main').innerHTML='<div class="empty">Yüklenemedi. İnternet bağlantını kontrol et.</div>'; console.error(err) }
 })();
-const APPV='12';
+const APPV='13';
 /* v12: otomatik güncelleme – uygulama açıkken de yeni sürümü yakalar */
 if ('serviceWorker' in navigator){
   let REG=null, newVer=false, reloaded=false;
